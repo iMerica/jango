@@ -9,6 +9,9 @@ import (
 
 type APIRequest struct {
 	*jangohttp.Request
+	Data    map[string]interface{}
+	Format  string
+	Version string
 }
 
 func NewAPIRequest(req *jangohttp.Request) *APIRequest {

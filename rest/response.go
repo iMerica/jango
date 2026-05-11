@@ -2,7 +2,9 @@ package rest
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	jangohttp "github.com/iMerica/jango/http"
 )
@@ -23,6 +25,54 @@ func (r JSONRenderer) Render(data interface{}) ([]byte, error) {
 
 func (r JSONRenderer) ContentType() string {
 	return "application/json"
+}
+
+type BrowsableAPIRenderer struct{}
+
+func (r BrowsableAPIRenderer) Render(data interface{}) ([]byte, error) {
+	body, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return []byte("<!doctype html><html><head><meta charset=\"utf-8\"><title>JanGO API</title></head><body><pre>" + escapeHTML(string(body)) + "</pre></body></html>"), nil
+}
+
+func (r BrowsableAPIRenderer) ContentType() string {
+	return "text/html; charset=utf-8"
+}
+
+type ContentNegotiator interface {
+	SelectRenderer(req *APIRequest, renderers []Renderer) (Renderer, string, error)
+}
+
+type DefaultContentNegotiator struct{}
+
+func (n DefaultContentNegotiator) SelectRenderer(req *APIRequest, renderers []Renderer) (Renderer, string, error) {
+	if len(renderers) == 0 {
+		renderers = []Renderer{JSONRenderer{}}
+	}
+	format := formatFromPath(req.URL.Path)
+	if format != "" {
+		for _, renderer := range renderers {
+			if rendererMatchesFormat(renderer, format) {
+				return renderer, format, nil
+			}
+		}
+		return nil, "", fmt.Errorf("unsupported format %q", format)
+	}
+	accept := req.Header.Get("Accept")
+	if accept == "" || accept == "*/*" {
+		return renderers[0], formatForRenderer(renderers[0]), nil
+	}
+	for _, part := range strings.Split(accept, ",") {
+		media := strings.TrimSpace(strings.Split(part, ";")[0])
+		for _, renderer := range renderers {
+			if media == "*/*" || media == renderer.ContentType() || strings.HasPrefix(renderer.ContentType(), media) {
+				return renderer, formatForRenderer(renderer), nil
+			}
+		}
+	}
+	return renderers[0], formatForRenderer(renderers[0]), nil
 }
 
 type APIResponse struct {
@@ -93,6 +143,43 @@ func (r *APIResponse) WriteTo(w http.ResponseWriter, req *http.Request) error {
 	}
 	_, err = w.Write(body)
 	return err
+}
+
+func formatFromPath(path string) string {
+	lastSlash := strings.LastIndex(path, "/")
+	lastDot := strings.LastIndex(path, ".")
+	if lastDot <= lastSlash {
+		return ""
+	}
+	return strings.Trim(path[lastDot+1:], "/")
+}
+
+func formatForRenderer(renderer Renderer) string {
+	switch renderer.(type) {
+	case BrowsableAPIRenderer:
+		return "api"
+	default:
+		if strings.HasPrefix(renderer.ContentType(), "application/json") {
+			return "json"
+		}
+		return strings.Split(renderer.ContentType(), "/")[0]
+	}
+}
+
+func rendererMatchesFormat(renderer Renderer, format string) bool {
+	switch format {
+	case "json":
+		return strings.HasPrefix(renderer.ContentType(), "application/json")
+	case "api", "html":
+		return strings.HasPrefix(renderer.ContentType(), "text/html")
+	default:
+		return false
+	}
+}
+
+func escapeHTML(s string) string {
+	replacer := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&#34;", "'", "&#39;")
+	return replacer.Replace(s)
 }
 
 func (r *APIResponse) ensureHeaders() {

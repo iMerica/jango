@@ -98,3 +98,49 @@ func TestModelSerializerPointerAndValueInstances(t *testing.T) {
 		t.Fatalf("expected pointer title, got %#v", pointerData["title"])
 	}
 }
+
+func TestModelSerializerBindValidationAndPartial(t *testing.T) {
+	serializer := rest.NewModelSerializer[blogapi.Post](
+		blogapi.PostMeta,
+		rest.Fields("id", "title", "slug", "body", "author_id", "is_published"),
+		rest.Field("id", rest.ReadOnly()),
+		rest.ValidateField("title", func(value interface{}) error {
+			if value == "bad" {
+				return assertError("bad title")
+			}
+			return nil
+		}),
+	)
+
+	if err := serializer.Bind(map[string]interface{}{
+		"title":        "Hello",
+		"slug":         "hello",
+		"body":         "Body",
+		"author_id":    "42",
+		"is_published": "true",
+	}); err != nil {
+		t.Fatalf("Bind returned error: %v", err)
+	}
+	data := serializer.ValidatedData()
+	if data["AuthorID"] != int64(42) {
+		t.Fatalf("expected coerced author ID, got %#v", data["AuthorID"])
+	}
+	if data["IsPublished"] != true {
+		t.Fatalf("expected coerced boolean, got %#v", data["IsPublished"])
+	}
+
+	if err := serializer.Bind(map[string]interface{}{"title": "bad"}); err == nil {
+		t.Fatal("expected validation error")
+	}
+	if len(serializer.Errors()["title"]) == 0 {
+		t.Fatalf("expected title error, got %#v", serializer.Errors())
+	}
+
+	if err := serializer.BindPartial(map[string]interface{}{"title": "Only title"}); err != nil {
+		t.Fatalf("partial bind should not require missing fields: %v", err)
+	}
+}
+
+type assertError string
+
+func (e assertError) Error() string { return string(e) }

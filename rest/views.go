@@ -24,6 +24,7 @@ type ListAPIView[T any] struct {
 	QuerySet        *orm.QuerySet[T]
 	Serializer      Serializer[T]
 	FilterFields    []string
+	SearchFields    []string
 	OrderingFields  []string
 	DefaultPageSize int
 }
@@ -77,6 +78,10 @@ func (v ListAPIView[T]) DispatchGet(req *APIRequest) jangohttp.Response {
 	if err != nil {
 		return BadRequest(err.Error())
 	}
+	qs, err = v.applySearch(qs, meta, req.QueryParams())
+	if err != nil {
+		return BadRequest(err.Error())
+	}
 	qs, err = v.applyOrdering(qs, meta, req.QueryParams())
 	if err != nil {
 		return BadRequest(err.Error())
@@ -105,6 +110,26 @@ func (v ListAPIView[T]) DispatchGet(req *APIRequest) jangohttp.Response {
 		"offset":  offset,
 		"results": results,
 	}, http.StatusOK)
+}
+
+func (v ListAPIView[T]) applySearch(qs *orm.QuerySet[T], meta *orm.ModelMeta, values url.Values) (*orm.QuerySet[T], error) {
+	term := strings.TrimSpace(values.Get("search"))
+	if term == "" {
+		return qs, nil
+	}
+	if len(v.SearchFields) == 0 {
+		return qs, nil
+	}
+	children := make([]orm.QNode, 0, len(v.SearchFields))
+	for _, name := range v.SearchFields {
+		field, ok := meta.FieldForNameOrColumn(name)
+		if !ok || field.FieldType == orm.ManyToManyType {
+			return nil, fmt.Errorf("unsupported search field %q", name)
+		}
+		column := meta.DBColumnForField(field.Name)
+		children = append(children, orm.Q(orm.L(column+"__icontains", term)))
+	}
+	return qs.FilterQ(orm.QOr(children...)), nil
 }
 
 func (v DetailAPIView[T]) DispatchGet(req *APIRequest) jangohttp.Response {
@@ -398,7 +423,7 @@ func coerceQueryValue(field orm.FieldDef, op string, raw string) (interface{}, e
 }
 
 func isReservedQueryParam(name string) bool {
-	return name == "ordering" || name == "limit" || name == "offset"
+	return name == "ordering" || name == "limit" || name == "offset" || name == "search" || name == "page" || name == "cursor" || name == "version"
 }
 
 func optionsResponse() *APIResponse {
