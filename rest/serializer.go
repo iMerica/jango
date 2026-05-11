@@ -72,6 +72,22 @@ type FieldOptions struct {
 	Default   interface{}
 }
 
+type SerializerFieldInfo struct {
+	Name      string
+	Type      string
+	Required  bool
+	ReadOnly  bool
+	WriteOnly bool
+	Default   interface{}
+	MaxLength int
+	HelpText  string
+}
+
+type SerializerSchemaProvider interface {
+	SchemaName() string
+	SchemaFields() []SerializerFieldInfo
+}
+
 type FieldOption func(*FieldOptions)
 
 func ReadOnly() FieldOption {
@@ -190,6 +206,30 @@ func (s *ModelSerializer[T]) Fields() []string {
 			continue
 		}
 		fields = append(fields, b.outputName)
+	}
+	return fields
+}
+
+func (s *ModelSerializer[T]) SchemaName() string {
+	if s.meta == nil {
+		return "Serializer"
+	}
+	return s.meta.AppLabel + "." + s.meta.ModelName
+}
+
+func (s *ModelSerializer[T]) SchemaFields() []SerializerFieldInfo {
+	fields := make([]SerializerFieldInfo, 0, len(s.bindings))
+	for _, binding := range s.bindings {
+		fields = append(fields, SerializerFieldInfo{
+			Name:      binding.outputName,
+			Type:      openAPIType(binding.field),
+			Required:  serializerFieldRequired(binding),
+			ReadOnly:  binding.options.ReadOnly || (binding.field.PrimaryKey && binding.field.Auto),
+			WriteOnly: binding.options.WriteOnly,
+			Default:   binding.options.Default,
+			MaxLength: binding.field.MaxLength,
+			HelpText:  binding.field.HelpText,
+		})
 	}
 	return fields
 }
@@ -689,3 +729,4 @@ func readPKValue(instance interface{}, meta *orm.ModelMeta) (interface{}, bool) 
 }
 
 var _ Serializer[struct{}] = (*ModelSerializer[struct{}])(nil)
+var _ SerializerSchemaProvider = (*ModelSerializer[struct{}])(nil)

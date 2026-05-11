@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	jangohttp "github.com/iMerica/jango/http"
@@ -24,19 +25,54 @@ type APIView struct {
 	Parsers        []Parser
 	Renderers      []Renderer
 	Negotiator     ContentNegotiator
+	Versioning     VersioningStrategy
+	ThrottleScope  string
 }
 
 func (v APIView) AsView(handlers map[string]APIHandler) jangohttp.ViewFunc {
-	return func(req *jangohttp.Request) jangohttp.Response {
-		apiReq := NewAPIRequest(req)
-		return v.Dispatch(apiReq, v, handlers)
+	if handlers == nil {
+		handlers = make(map[string]APIHandler)
 	}
+	if handlers[http.MethodOptions] == nil && handlers[strings.ToLower(http.MethodOptions)] == nil {
+		handlers[http.MethodOptions] = func(req *APIRequest) jangohttp.Response {
+			resp := v.Options(req)
+			if apiResp, ok := resp.(*APIResponse); ok {
+				apiResp.SetHeader("Allow", joinMethods(allowedMethodsFromHandlers(normalizeHandlers(handlers))))
+			}
+			return resp
+		}
+	}
+	normalized := normalizeHandlers(handlers)
+	view := func(req *jangohttp.Request) jangohttp.Response {
+		apiReq := NewAPIRequest(req)
+		return v.Dispatch(apiReq, v, normalized)
+	}
+	registerRouteMetadata(view, RouteMetadata{
+		Methods:      allowedMethodsFromHandlers(normalized),
+		View:         v,
+		Versioning:   v.Versioning,
+		Throttled:    len(v.Throttles) > 0,
+		AuthRequired: len(v.Authenticators) > 0,
+	})
+	return view
+}
+
+func (v APIView) Options(req *APIRequest) jangohttp.Response {
+	return NewAPIResponse(SimpleMetadata{}.DetermineMetadata(req, v, nil), http.StatusOK)
 }
 
 func (v APIView) Dispatch(req *APIRequest, view interface{}, handlers map[string]APIHandler) jangohttp.Response {
 	v = v.withDefaults()
+	handlers = normalizeHandlers(handlers)
 	if err := parseRequestData(req, v.Parsers); err != nil {
 		return BadRequest(err.Error())
+	}
+	if v.Versioning != nil {
+		version, err := v.Versioning.DetermineVersion(req, view)
+		if err != nil {
+			return BadRequest(err.Error())
+		}
+		req.Version = version
 	}
 	if authResp := authenticateRequest(req, v.Authenticators); authResp != nil {
 		return v.finalize(req, authResp)
@@ -59,19 +95,75 @@ func (v APIView) Dispatch(req *APIRequest, view interface{}, handlers map[string
 	}
 	req.Format = format
 	req.AcceptedRenderer = renderer
-	handler := handlers[req.Method]
+	method := strings.ToUpper(req.Method)
+	handler := handlers[method]
 	if handler == nil && req.Method == http.MethodHead {
 		handler = handlers[http.MethodGet]
 	}
 	if handler == nil {
-		allowed := make([]string, 0, len(handlers))
-		for method := range handlers {
-			allowed = append(allowed, method)
-		}
-		allowed = append(allowed, http.MethodOptions)
+		allowed := allowedMethodsFromHandlers(handlers)
 		return v.finalize(req, MethodNotAllowed(req.Method, allowed...))
 	}
 	return v.finalize(req, handler(req))
+}
+
+func normalizeHandlers(handlers map[string]APIHandler) map[string]APIHandler {
+	normalized := make(map[string]APIHandler, len(handlers))
+	for method, handler := range handlers {
+		if handler == nil {
+			continue
+		}
+		method = strings.ToUpper(strings.TrimSpace(method))
+		if method == "" {
+			continue
+		}
+		normalized[method] = handler
+	}
+	return normalized
+}
+
+func allowedMethodsFromHandlers(handlers map[string]APIHandler) []string {
+	seen := make(map[string]bool, len(handlers)+2)
+	for method := range handlers {
+		seen[strings.ToUpper(method)] = true
+	}
+	if seen[http.MethodGet] {
+		seen[http.MethodHead] = true
+	}
+	seen[http.MethodOptions] = true
+
+	methods := make([]string, 0, len(seen))
+	for method := range seen {
+		methods = append(methods, method)
+	}
+	sort.Slice(methods, func(i, j int) bool {
+		return methodOrder(methods[i]) < methodOrder(methods[j])
+	})
+	return methods
+}
+
+func methodOrder(method string) int {
+	switch method {
+	case http.MethodGet:
+		return 0
+	case http.MethodPost:
+		return 1
+	case http.MethodPut:
+		return 2
+	case http.MethodPatch:
+		return 3
+	case http.MethodDelete:
+		return 4
+	case http.MethodHead:
+		return 5
+	case http.MethodOptions:
+		return 6
+	default:
+		if method == "" {
+			return 1000
+		}
+		return 100 + int(method[0])
+	}
 }
 
 func (v APIView) finalize(req *APIRequest, resp jangohttp.Response) jangohttp.Response {
@@ -204,6 +296,7 @@ type ModelViewSet[T any] struct {
 func (v ModelViewSet[T]) AsView(actions map[string]string) jangohttp.ViewFunc {
 	handlers := make(map[string]APIHandler)
 	for method, action := range actions {
+		method = strings.ToUpper(method)
 		switch strings.ToLower(action) {
 		case "list":
 			handlers[method] = v.List
@@ -217,14 +310,23 @@ func (v ModelViewSet[T]) AsView(actions map[string]string) jangohttp.ViewFunc {
 			handlers[method] = v.PartialUpdate
 		case "destroy":
 			handlers[method] = v.Destroy
+		default:
+			if extra, ok := v.extraActionByHandlerName(action); ok {
+				handlers[method] = extra.Handler
+			}
 		}
 	}
-	handlers[http.MethodOptions] = v.Options
-	api := v.APIView
-	return func(req *jangohttp.Request) jangohttp.Response {
-		apiReq := NewAPIRequest(req)
-		return api.Dispatch(apiReq, v, handlers)
+	handlers[http.MethodOptions] = func(req *APIRequest) jangohttp.Response {
+		return v.optionsWithAllowed(req, allowedMethodsFromHandlers(handlers))
 	}
+	api := v.APIView
+	normalized := normalizeHandlers(handlers)
+	view := func(req *jangohttp.Request) jangohttp.Response {
+		apiReq := NewAPIRequest(req)
+		return api.Dispatch(apiReq, v, normalized)
+	}
+	registerRouteMetadata(view, v.routeMetadata(actions, allowedMethodsFromHandlers(normalized)))
+	return view
 }
 
 func (v ModelViewSet[T]) List(req *APIRequest) jangohttp.Response {
@@ -350,10 +452,17 @@ func (v ModelViewSet[T]) Destroy(req *APIRequest) jangohttp.Response {
 }
 
 func (v ModelViewSet[T]) Options(req *APIRequest) jangohttp.Response {
-	meta := v.Serializer.ModelMeta()
+	return v.optionsWithAllowed(req, []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"})
+}
+
+func (v ModelViewSet[T]) optionsWithAllowed(req *APIRequest, allowed []string) jangohttp.Response {
+	var meta *orm.ModelMeta
+	if v.Serializer != nil {
+		meta = v.Serializer.ModelMeta()
+	}
 	data := SimpleMetadata{}.DetermineMetadata(req, v, meta)
 	resp := NewAPIResponse(data, http.StatusOK)
-	resp.SetHeader("Allow", "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS")
+	resp.SetHeader("Allow", joinMethods(allowed))
 	return resp
 }
 
@@ -362,4 +471,40 @@ func modelMetaFromView(view interface{}) *orm.ModelMeta {
 		return getter.getMeta()
 	}
 	return nil
+}
+
+func (v ModelViewSet[T]) extraActionByHandlerName(name string) (ExtraAction[T], bool) {
+	for _, action := range v.ExtraActions {
+		normalized, err := normalizeExtraAction(action)
+		if err != nil {
+			continue
+		}
+		if strings.EqualFold(normalized.HandlerName, name) || strings.EqualFold(normalized.Name, name) {
+			return normalized, true
+		}
+	}
+	return ExtraAction[T]{}, false
+}
+
+func (v ModelViewSet[T]) routeMetadata(actions map[string]string, methods []string) RouteMetadata {
+	meta := RouteMetadata{
+		Methods:        methods,
+		View:           v,
+		Serializer:     v.Serializer,
+		ModelMeta:      v.getMeta(),
+		FilterFields:   append([]string(nil), v.FilterFields...),
+		SearchFields:   append([]string(nil), v.SearchFields...),
+		OrderingFields: append([]string(nil), v.OrderingFields...),
+		Paginator:      v.Paginator,
+		Versioning:     v.Versioning,
+		Throttled:      len(v.Throttles) > 0,
+		AuthRequired:   len(v.Authenticators) > 0,
+	}
+	for method, action := range actions {
+		meta.Actions = append(meta.Actions, RouteAction{
+			Method: strings.ToUpper(method),
+			Name:   strings.ToLower(action),
+		})
+	}
+	return meta
 }

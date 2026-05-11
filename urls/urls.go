@@ -9,7 +9,7 @@ import (
 type Converter string
 
 const (
-	StringConverter  Converter = "str"
+	StringConverter Converter = "str"
 	IntConverter    Converter = "int"
 	SlugConverter   Converter = "slug"
 	UUIDConverter   Converter = "uuid"
@@ -89,15 +89,16 @@ type paramSpec struct {
 }
 
 type Pattern struct {
-	Path         string
-	Regex        *regexp.Regexp
-	Handler      interface{}
-	Name         string
-	Namespace    string
-	SubPatterns  []Pattern
-	IsInclude    bool
-	prefix       string
-	paramSpecs   []paramSpec
+	Path        string
+	Regex       *regexp.Regexp
+	Handler     interface{}
+	Metadata    interface{}
+	Name        string
+	Namespace   string
+	SubPatterns []Pattern
+	IsInclude   bool
+	prefix      string
+	paramSpecs  []paramSpec
 }
 
 func Path(route string, handler interface{}, name string) Pattern {
