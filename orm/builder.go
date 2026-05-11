@@ -2,6 +2,7 @@ package orm
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 )
@@ -12,7 +13,15 @@ func NewSQLCompiler() *SQLCompiler {
 	return &SQLCompiler{}
 }
 
-func (c *SQLCompiler) CompileSelect(qs *QuerySet) (string, []interface{}) {
+func replacePlaceholders(query string, startIdx int) string {
+	for strings.Contains(query, "$NEXT") {
+		query = strings.Replace(query, "$NEXT", fmt.Sprintf("$%d", startIdx), 1)
+		startIdx++
+	}
+	return query
+}
+
+func (c *SQLCompiler) CompileSelect(qs *BaseQuerySet) (string, []interface{}) {
 	var b sqlBuilder
 	var args []interface{}
 
@@ -87,8 +96,7 @@ func (c *SQLCompiler) CompileSelect(qs *QuerySet) (string, []interface{}) {
 			b.WriteString(" SKIP LOCKED")
 		}
 	}
-
-	return b.String(), args
+	return replacePlaceholders(b.String(), 1), args
 }
 
 func (c *SQLCompiler) CompileCount(model *ModelMeta, filters []QNode, exclude []QNode, distinct bool) (string, []interface{}) {
@@ -99,7 +107,7 @@ func (c *SQLCompiler) CompileCount(model *ModelMeta, filters []QNode, exclude []
 	if distinct {
 		b.WriteString("DISTINCT ")
 	}
-	b.WriteString(quote(model.TableName) + "." + quote(model.PKField))
+	b.WriteString(quote(model.TableName) + "." + quote(model.PKColumn()))
 	b.WriteString(") FROM ")
 	b.WriteString(quote(model.TableName))
 
@@ -109,8 +117,7 @@ func (c *SQLCompiler) CompileCount(model *ModelMeta, filters []QNode, exclude []
 		b.WriteString(where)
 		args = append(args, whereArgs...)
 	}
-
-	return b.String(), args
+	return replacePlaceholders(b.String(), 1), args
 }
 
 func (c *SQLCompiler) CompileAggregate(model *ModelMeta, filters []QNode, exclude []QNode, annotations []Annotation) (string, []interface{}) {
@@ -138,59 +145,71 @@ func (c *SQLCompiler) CompileAggregate(model *ModelMeta, filters []QNode, exclud
 		b.WriteString(where)
 		args = append(args, whereArgs...)
 	}
-
-	return b.String(), args
+	return replacePlaceholders(b.String(), 1), args
 }
 
 func (c *SQLCompiler) CompileInsert(model *ModelMeta, values map[string]interface{}) (string, []interface{}) {
 	var b sqlBuilder
 
 	keys := make([]string, 0, len(values))
-	for k := range values {
+	for k, v := range values {
+		if isZeroAutoPKValue(model, k, v) {
+			continue
+		}
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	b.WriteString("INSERT INTO ")
 	b.WriteString(quote(model.TableName))
-	b.WriteString(" (")
 
-	for i, k := range keys {
-		colName := model.DBColumnForField(k)
-		if i > 0 {
-			b.WriteString(", ")
+	if len(keys) == 0 {
+		b.WriteString(" DEFAULT VALUES")
+	} else {
+		b.WriteString(" (")
+
+		for i, k := range keys {
+			colName := model.DBColumnForField(k)
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(quote(colName))
 		}
-		b.WriteString(quote(colName))
-	}
 
-	b.WriteString(") VALUES (")
+		b.WriteString(") VALUES (")
+	}
 
 	args := make([]interface{}, 0, len(keys))
-	for i, k := range keys {
-		if i > 0 {
-			b.WriteString(", ")
+	if len(keys) > 0 {
+		for i, k := range keys {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(fmt.Sprintf("$%d", i+1))
+			args = append(args, values[k])
 		}
-		b.WriteString(fmt.Sprintf("$%d", i+1))
-		args = append(args, values[k])
+
+		b.WriteString(")")
 	}
 
-	b.WriteString(")")
-
-	pkField := model.PKField
-	hasAutoPK := false
-	for _, f := range model.Fields {
-		if f.Name == pkField && f.Auto {
-			hasAutoPK = true
-			break
-		}
-	}
-
-	if hasAutoPK {
+	if _, hasAutoPK := model.AutoPKField(); hasAutoPK {
 		b.WriteString(" RETURNING ")
-		b.WriteString(quote(pkField))
+		b.WriteString(quote(model.PKColumn()))
 	}
 
 	return b.String(), args
+}
+
+func isZeroAutoPKValue(model *ModelMeta, name string, value interface{}) bool {
+	f, ok := model.FieldForNameOrColumn(name)
+	if !ok || !f.PrimaryKey || !f.Auto {
+		return false
+	}
+	if value == nil {
+		return true
+	}
+	v := reflect.ValueOf(value)
+	return v.IsZero()
 }
 
 func (c *SQLCompiler) CompileUpdate(model *ModelMeta, values map[string]interface{}, filters []QNode, exclude []QNode) (string, []interface{}) {
@@ -226,8 +245,7 @@ func (c *SQLCompiler) CompileUpdate(model *ModelMeta, values map[string]interfac
 		b.WriteString(where)
 		args = append(args, whereArgs...)
 	}
-
-	return b.String(), args
+	return replacePlaceholders(b.String(), argIdx), args
 }
 
 func (c *SQLCompiler) CompileUpdateExpr(model *ModelMeta, updates map[string]Expr, filters []QNode, exclude []QNode) (string, []interface{}) {
@@ -265,7 +283,7 @@ func (c *SQLCompiler) CompileUpdateExpr(model *ModelMeta, updates map[string]Exp
 	}
 
 	_ = argIdx
-	return b.String(), args
+	return replacePlaceholders(b.String(), argIdx), args
 }
 
 func (c *SQLCompiler) CompileDelete(model *ModelMeta, filters []QNode, exclude []QNode) (string, []interface{}) {
@@ -281,8 +299,7 @@ func (c *SQLCompiler) CompileDelete(model *ModelMeta, filters []QNode, exclude [
 		b.WriteString(where)
 		args = append(args, whereArgs...)
 	}
-
-	return b.String(), args
+	return replacePlaceholders(b.String(), 1), args
 }
 
 func (c *SQLCompiler) compileWhere(model *ModelMeta, filters []QNode, exclude []QNode) (string, []interface{}) {
@@ -424,7 +441,7 @@ func (c *SQLCompiler) compileIn(model *ModelMeta, lookup Lookup) (string, []inte
 			placeholders[i] = "$NEXT"
 		}
 		return qualifiedCol + " IN (" + strings.Join(placeholders, ", ") + ")", v
-	case *QuerySet:
+	case *BaseQuerySet:
 		subSQL, subArgs := c.CompileSelect(v)
 		return qualifiedCol + " IN (" + subSQL + ")", subArgs
 	default:
@@ -463,10 +480,10 @@ func (c *SQLCompiler) compileExpr(expr Expr, model *ModelMeta) (string, []interf
 	case CoalesceExpr:
 		return c.compileCoalesceExpr(e, model)
 	case SubqueryExpr:
-		subSQL, subArgs := c.CompileSelect(e.QuerySet)
+		subSQL, subArgs := c.CompileSelect(e.BaseQuerySet)
 		return "(" + subSQL + ")", subArgs
 	case ExistsExpr:
-		subSQL, subArgs := c.CompileSelect(e.Subquery.QuerySet)
+		subSQL, subArgs := c.CompileSelect(e.Subquery.BaseQuerySet)
 		if e.Negated {
 			return "NOT EXISTS (" + subSQL + ")", subArgs
 		}
@@ -547,7 +564,7 @@ func (c *SQLCompiler) compileSelectRelated(model *ModelMeta, fields []string) (s
 	var args []interface{}
 
 	for _, field := range fields {
-		fd, ok := model.FieldByName(field)
+		fd, ok := model.FieldForNameOrColumn(field)
 		if !ok || (fd.FieldType != ForeignKeyType && fd.FieldType != OneToOneType) {
 			continue
 		}
@@ -558,9 +575,10 @@ func (c *SQLCompiler) compileSelectRelated(model *ModelMeta, fields []string) (s
 		if !ok {
 			continue
 		}
+		relatedPKColumn := relatedModel.PKColumn()
 		parts = append(parts, "LEFT JOIN "+quote(relatedModel.TableName)+
-			" ON "+quote(model.TableName)+"."+quote(fd.DBColumn)+
-			" = "+quote(relatedModel.TableName)+"."+quote(relatedModel.PKField))
+			" ON "+quote(model.TableName)+"."+quote(model.DBColumnForField(fd.Name))+
+			" = "+quote(relatedModel.TableName)+"."+quote(relatedPKColumn))
 	}
 
 	return strings.Join(parts, " "), args
@@ -584,7 +602,7 @@ func (c *SQLCompiler) compileOrderBy(model *ModelMeta, fields []string) string {
 	return strings.Join(parts, ", ")
 }
 
-func (c *SQLCompiler) selectFields(qs *QuerySet) string {
+func (c *SQLCompiler) selectFields(qs *BaseQuerySet) string {
 	var fields []string
 	for _, f := range qs.model.Fields {
 		if f.FieldType == ManyToManyType {

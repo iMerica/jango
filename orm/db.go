@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ type DB struct {
 }
 
 type DBConfig struct {
+	URL               string
 	Host              string
 	Port              int
 	Name              string
@@ -33,6 +35,18 @@ type DBConfig struct {
 }
 
 func DefaultDBConfig() *DBConfig {
+	url := os.Getenv("DATABASE_URL")
+	if url != "" {
+		return &DBConfig{
+			URL:               url,
+			MaxConns:          10,
+			MinConns:          2,
+			MaxConnLifetime:   30 * time.Minute,
+			MaxConnIdleTime:   5 * time.Minute,
+			HealthCheckPeriod: 30 * time.Second,
+		}
+	}
+
 	return &DBConfig{
 		Host:              "localhost",
 		Port:              5432,
@@ -59,6 +73,9 @@ func DBConfigFromSettings(host string, port int, name, user, password string) *D
 }
 
 func (c *DBConfig) DSN() string {
+	if c.URL != "" {
+		return c.URL
+	}
 	sslMode := c.SSLMode
 	if sslMode == "" {
 		sslMode = "prefer"

@@ -55,28 +55,30 @@ class Pizza(models.Model):
 <td>
 
 ```go
-var Topping = models.Define("Topping",
-    models.Fields(
-        models.CharField("name", models.MaxLength(80), models.Unique()),
-        models.BooleanField("is_vegetarian", models.Default(true)),
-    ),
-    models.Meta(
-        models.Ordering("name"),
-    ),
-)
+type Topping struct {
+	ID           uint   `jango:"primary_key"`
+	Name         string `jango:"type:char,max_length:80,unique"`
+	IsVegetarian bool   `jango:"type:boolean,default:true"`
+}
 
-var Pizza = models.Define("Pizza",
-    models.Fields(
-        models.CharField("name", models.MaxLength(120), models.Unique()),
-        models.ManyToManyField("toppings", Topping,
-            models.RelatedName("pizzas"),
-            models.Blank(),
-        ),
-    ),
-    models.Meta(
-        models.Ordering("name"),
-    ),
-)
+func (Topping) Meta() orm.ModelOptions {
+	return orm.ModelOptions{Ordering: []string{"name"}}
+}
+
+type Pizza struct {
+	ID       uint       `jango:"primary_key"`
+	Name     string     `jango:"type:char,max_length:120,unique"`
+	Toppings []*Topping `jango:"related_name:pizzas"`
+}
+
+func (Pizza) Meta() orm.ModelOptions {
+	return orm.ModelOptions{Ordering: []string{"name"}}
+}
+
+func init() {
+	orm.RegisterModel("pizza", &Topping{})
+	orm.RegisterModel("pizza", &Pizza{})
+}
 ```
 
 </td>
@@ -93,10 +95,10 @@ jango migrate
 And then give you a QuerySet-style API:
 
 ```go
-pizzas, err := Pizza.Objects().
-    Filter(models.Q{"toppings__name": "Mozzarella"}).
+pizzas, err := orm.Objects[Pizza]("pizza", "Pizza").
+    Filter(orm.L("toppings__name", "Mozzarella")).
     OrderBy("name").
-    All(ctx)
+    AllRecords(ctx)
 if err != nil {
     return err
 }

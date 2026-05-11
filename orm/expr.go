@@ -231,14 +231,14 @@ func WithOutputField(field string) AggOption {
 }
 
 type SubqueryExpr struct {
-	QuerySet *QuerySet
+	BaseQuerySet *BaseQuerySet
 	OutputField string
 }
 
 func (s SubqueryExpr) ExprType() string { return "subquery" }
 
-func Subquery(qs *QuerySet) SubqueryExpr {
-	return SubqueryExpr{QuerySet: qs}
+func Subquery(qs *BaseQuerySet) SubqueryExpr {
+	return SubqueryExpr{BaseQuerySet: qs}
 }
 
 type OuterRef struct {
@@ -254,7 +254,7 @@ type ExistsExpr struct {
 
 func (e ExistsExpr) ExprType() string { return "exists" }
 
-func Exists(qs *QuerySet) ExistsExpr {
+func Exists(qs *BaseQuerySet) ExistsExpr {
 	return ExistsExpr{Subquery: Subquery(qs)}
 }
 

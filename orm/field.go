@@ -8,91 +8,91 @@ import (
 type FieldType string
 
 const (
-	AutoFieldType       FieldType = "auto"
-	BigAutoFieldType     FieldType = "bigauto"
-	SmallAutoFieldType   FieldType = "smallauto"
-	CharFieldType        FieldType = "char"
-	TextFieldType        FieldType = "text"
-	SlugFieldType        FieldType = "slug"
-	EmailFieldType       FieldType = "email"
-	URLFieldType         FieldType = "url"
-	UUIDFieldType        FieldType = "uuid"
-	IPAddressFieldType  FieldType = "ipaddress"
-	GenericIPFieldType  FieldType = "genericip"
-	IntFieldType         FieldType = "int"
-	BigIntFieldType      FieldType = "bigint"
-	SmallIntFieldType    FieldType = "smallint"
-	PositiveIntFieldType FieldType = "positiveint"
+	AutoFieldType             FieldType = "auto"
+	BigAutoFieldType          FieldType = "bigauto"
+	SmallAutoFieldType        FieldType = "smallauto"
+	CharFieldType             FieldType = "char"
+	TextFieldType             FieldType = "text"
+	SlugFieldType             FieldType = "slug"
+	EmailFieldType            FieldType = "email"
+	URLFieldType              FieldType = "url"
+	UUIDFieldType             FieldType = "uuid"
+	IPAddressFieldType        FieldType = "ipaddress"
+	GenericIPFieldType        FieldType = "genericip"
+	IntFieldType              FieldType = "int"
+	BigIntFieldType           FieldType = "bigint"
+	SmallIntFieldType         FieldType = "smallint"
+	PositiveIntFieldType      FieldType = "positiveint"
 	PositiveSmallIntFieldType FieldType = "positivesmallint"
-	PositiveBigIntFieldType  FieldType = "positivebigint"
-	FloatFieldType       FieldType = "float"
-	DoubleFieldType      FieldType = "double"
-	DecimalFieldType     FieldType = "decimal"
-	BooleanFieldType     FieldType = "boolean"
-	NullBooleanFieldType FieldType = "nullboolean"
-	DateFieldType        FieldType = "date"
-	TimeFieldType        FieldType = "time"
-	DateTimeFieldType    FieldType = "datetime"
-	DurationFieldType    FieldType = "duration"
-	FileFieldType        FieldType = "file"
-	ImageFieldType       FieldType = "image"
-	FilePathFieldType    FieldType = "filepath"
-	JSONFieldType        FieldType = "json"
-	ArrayFieldType       FieldType = "array"
-	ForeignKeyType        FieldType = "foreignkey"
-	OneToOneType          FieldType = "onetoonetype"
-	ManyToManyType       FieldType = "manytomany"
+	PositiveBigIntFieldType   FieldType = "positivebigint"
+	FloatFieldType            FieldType = "float"
+	DoubleFieldType           FieldType = "double"
+	DecimalFieldType          FieldType = "decimal"
+	BooleanFieldType          FieldType = "boolean"
+	NullBooleanFieldType      FieldType = "nullboolean"
+	DateFieldType             FieldType = "date"
+	TimeFieldType             FieldType = "time"
+	DateTimeFieldType         FieldType = "datetime"
+	DurationFieldType         FieldType = "duration"
+	FileFieldType             FieldType = "file"
+	ImageFieldType            FieldType = "image"
+	FilePathFieldType         FieldType = "filepath"
+	JSONFieldType             FieldType = "json"
+	ArrayFieldType            FieldType = "array"
+	ForeignKeyType            FieldType = "foreignkey"
+	OneToOneType              FieldType = "onetoonetype"
+	ManyToManyType            FieldType = "manytomany"
 )
 
 type OnDelete string
 
 const (
-	Cascade      OnDelete = "cascade"
-	Protect      OnDelete = "protect"
-	SetNull      OnDelete = "set_null"
-	SetDefault   OnDelete = "set_default"
-	Set          OnDelete = "set"
-	DoNothing    OnDelete = "do_nothing"
-	Restrict     OnDelete = "restrict"
+	Cascade    OnDelete = "cascade"
+	Protect    OnDelete = "protect"
+	SetNull    OnDelete = "set_null"
+	SetDefault OnDelete = "set_default"
+	Set        OnDelete = "set"
+	DoNothing  OnDelete = "do_nothing"
+	Restrict   OnDelete = "restrict"
 )
 
 type FieldDef struct {
-	Name          string
-	DBColumn      string
-	FieldType     FieldType
-	PrimaryKey    bool
-	Auto          bool
-	Nullable      bool
-	Unique        bool
-	UniqueForDate string
+	Name           string
+	DBColumn       string
+	FieldType      FieldType
+	PrimaryKey     bool
+	Auto           bool
+	Nullable       bool
+	Unique         bool
+	UniqueForDate  string
 	UniqueForMonth string
 	UniqueForYear  string
-	DBIndex       bool
-	DbTablespace  string
-	Default       interface{}
-	Choices       []Choice
-	HelpText      string
-	VerboseName   string
-	Blank         bool
-	Editable      bool
-	Serial        bool
-	Validators    []ValidatorFunc
-	ErrorMessages map[string]string
+	DBIndex        bool
+	DbTablespace   string
+	Default        interface{}
+	Choices        []Choice
+	HelpText       string
+	VerboseName    string
+	Blank          bool
+	Editable       bool
+	Serial         bool
+	Validators     []ValidatorFunc
+	ErrorMessages  map[string]string
 
-	MaxLength    int
-	Decimals     int
-	MinValue    interface{}
-	MaxValue    interface{}
+	MaxLength int
+	Decimals  int
+	MinValue  interface{}
+	MaxValue  interface{}
 
-	AutoNow     bool
-	AutoNowAdd  bool
+	AutoNow    bool
+	AutoNowAdd bool
 
-	RelatedModel  string
-	RelatedName   string
+	RelatedModel     string
+	RelatedName      string
 	RelatedQueryName string
-	OnDelete      OnDelete
-	DBConstraint  bool
-	SelfRelation  bool
+	OnDelete         OnDelete
+	DBConstraint     bool
+	SelfRelation     bool
 
 	Through       string
 	ThroughFields []string
@@ -109,15 +109,15 @@ type Choice struct {
 type ValidatorFunc func(value interface{}) error
 
 type IndexDef struct {
-	Name            string
-	Fields          []string
-	Unique          bool
-	Condition       string
-	Include         []string
-	Opclasses       []string
-	Tables          string
-	DBTablespace    string
-	Concurrently    bool
+	Name         string
+	Fields       []string
+	Unique       bool
+	Condition    string
+	Include      []string
+	Opclasses    []string
+	Tables       string
+	DBTablespace string
+	Concurrently bool
 }
 
 type ConstraintDef struct {
@@ -174,10 +174,10 @@ func SmallAutoField(name string, opts ...FieldOption) FieldDef {
 
 func CharField(name string, maxLength int, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  CharFieldType,
-		MaxLength:  maxLength,
-		Editable:   true,
+		Name:      name,
+		FieldType: CharFieldType,
+		MaxLength: maxLength,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -187,9 +187,9 @@ func CharField(name string, maxLength int, opts ...FieldOption) FieldDef {
 
 func TextField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  TextFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: TextFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -199,10 +199,10 @@ func TextField(name string, opts ...FieldOption) FieldDef {
 
 func SlugField(name string, maxLength int, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  SlugFieldType,
-		MaxLength:  maxLength,
-		Editable:   true,
+		Name:      name,
+		FieldType: SlugFieldType,
+		MaxLength: maxLength,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -215,10 +215,10 @@ func EmailField(name string, maxLength int, opts ...FieldOption) FieldDef {
 		maxLength = 254
 	}
 	f := FieldDef{
-		Name:       name,
-		FieldType:  EmailFieldType,
-		MaxLength:  maxLength,
-		Editable:   true,
+		Name:      name,
+		FieldType: EmailFieldType,
+		MaxLength: maxLength,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -231,10 +231,10 @@ func URLField(name string, maxLength int, opts ...FieldOption) FieldDef {
 		maxLength = 200
 	}
 	f := FieldDef{
-		Name:       name,
-		FieldType:  URLFieldType,
-		MaxLength:  maxLength,
-		Editable:   true,
+		Name:      name,
+		FieldType: URLFieldType,
+		MaxLength: maxLength,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -244,9 +244,9 @@ func URLField(name string, maxLength int, opts ...FieldOption) FieldDef {
 
 func UUIDField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  UUIDFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: UUIDFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -256,9 +256,9 @@ func UUIDField(name string, opts ...FieldOption) FieldDef {
 
 func IPAddressField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  IPAddressFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: IPAddressFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -268,9 +268,9 @@ func IPAddressField(name string, opts ...FieldOption) FieldDef {
 
 func GenericIPField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  GenericIPFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: GenericIPFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -280,9 +280,9 @@ func GenericIPField(name string, opts ...FieldOption) FieldDef {
 
 func IntegerField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  IntFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: IntFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -292,9 +292,9 @@ func IntegerField(name string, opts ...FieldOption) FieldDef {
 
 func BigIntegerField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  BigIntFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: BigIntFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -304,9 +304,9 @@ func BigIntegerField(name string, opts ...FieldOption) FieldDef {
 
 func SmallIntegerField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  SmallIntFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: SmallIntFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -316,10 +316,10 @@ func SmallIntegerField(name string, opts ...FieldOption) FieldDef {
 
 func PositiveIntegerField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  PositiveIntFieldType,
-		MinValue:   0,
-		Editable:   true,
+		Name:      name,
+		FieldType: PositiveIntFieldType,
+		MinValue:  0,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -329,10 +329,10 @@ func PositiveIntegerField(name string, opts ...FieldOption) FieldDef {
 
 func PositiveSmallIntegerField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  PositiveSmallIntFieldType,
-		MinValue:   0,
-		Editable:   true,
+		Name:      name,
+		FieldType: PositiveSmallIntFieldType,
+		MinValue:  0,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -342,10 +342,10 @@ func PositiveSmallIntegerField(name string, opts ...FieldOption) FieldDef {
 
 func PositiveBigIntegerField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  PositiveBigIntFieldType,
-		MinValue:   0,
-		Editable:   true,
+		Name:      name,
+		FieldType: PositiveBigIntFieldType,
+		MinValue:  0,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -355,9 +355,9 @@ func PositiveBigIntegerField(name string, opts ...FieldOption) FieldDef {
 
 func FloatField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  FloatFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: FloatFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -367,9 +367,9 @@ func FloatField(name string, opts ...FieldOption) FieldDef {
 
 func DoubleField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  DoubleFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: DoubleFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -379,11 +379,11 @@ func DoubleField(name string, opts ...FieldOption) FieldDef {
 
 func DecimalField(name string, maxDigits, decimalPlaces int, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  DecimalFieldType,
-		MaxLength:  maxDigits,
-		Decimals:   decimalPlaces,
-		Editable:   true,
+		Name:      name,
+		FieldType: DecimalFieldType,
+		MaxLength: maxDigits,
+		Decimals:  decimalPlaces,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -393,9 +393,9 @@ func DecimalField(name string, maxDigits, decimalPlaces int, opts ...FieldOption
 
 func BooleanField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  BooleanFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: BooleanFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -405,10 +405,10 @@ func BooleanField(name string, opts ...FieldOption) FieldDef {
 
 func NullBooleanField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  NullBooleanFieldType,
-		Nullable:   true,
-		Editable:   true,
+		Name:      name,
+		FieldType: NullBooleanFieldType,
+		Nullable:  true,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -418,9 +418,9 @@ func NullBooleanField(name string, opts ...FieldOption) FieldDef {
 
 func DateField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  DateFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: DateFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -430,9 +430,9 @@ func DateField(name string, opts ...FieldOption) FieldDef {
 
 func TimeField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  TimeFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: TimeFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -442,9 +442,9 @@ func TimeField(name string, opts ...FieldOption) FieldDef {
 
 func DateTimeField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  DateTimeFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: DateTimeFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -454,9 +454,9 @@ func DateTimeField(name string, opts ...FieldOption) FieldDef {
 
 func DurationField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  DurationFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: DurationFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -466,10 +466,10 @@ func DurationField(name string, opts ...FieldOption) FieldDef {
 
 func FileField(name string, maxLength int, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  FileFieldType,
-		MaxLength:  maxLength,
-		Editable:   true,
+		Name:      name,
+		FieldType: FileFieldType,
+		MaxLength: maxLength,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -479,10 +479,10 @@ func FileField(name string, maxLength int, opts ...FieldOption) FieldDef {
 
 func ImageField(name string, maxLength int, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  ImageFieldType,
-		MaxLength:  maxLength,
-		Editable:   true,
+		Name:      name,
+		FieldType: ImageFieldType,
+		MaxLength: maxLength,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -492,9 +492,9 @@ func ImageField(name string, maxLength int, opts ...FieldOption) FieldDef {
 
 func FilePathField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  FilePathFieldType,
-		Editable:   true,
+		Name:      name,
+		FieldType: FilePathFieldType,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -504,10 +504,10 @@ func FilePathField(name string, opts ...FieldOption) FieldDef {
 
 func JSONField(name string, opts ...FieldOption) FieldDef {
 	f := FieldDef{
-		Name:       name,
-		FieldType:  JSONFieldType,
-		Nullable:   true,
-		Editable:   true,
+		Name:      name,
+		FieldType: JSONFieldType,
+		Nullable:  true,
+		Editable:  true,
 	}
 	for _, opt := range opts {
 		opt(&f)
@@ -519,7 +519,7 @@ func ForeignKey(name string, relatedModel string, opts ...FieldOption) FieldDef 
 	f := FieldDef{
 		Name:         name,
 		FieldType:    ForeignKeyType,
-		RelatedModel:  relatedModel,
+		RelatedModel: relatedModel,
 		OnDelete:     Cascade,
 		RelatedName:  "+",
 		DBConstraint: true,
@@ -530,7 +530,7 @@ func ForeignKey(name string, relatedModel string, opts ...FieldOption) FieldDef 
 		opt(&f)
 	}
 	if f.DBColumn == "" {
-		f.DBColumn = name + "_id"
+		f.DBColumn = GoFieldToDBColumn(name) + "_id"
 	}
 	return f
 }
@@ -539,7 +539,7 @@ func OneToOneField(name string, relatedModel string, opts ...FieldOption) FieldD
 	f := FieldDef{
 		Name:         name,
 		FieldType:    OneToOneType,
-		RelatedModel:  relatedModel,
+		RelatedModel: relatedModel,
 		OnDelete:     Cascade,
 		RelatedName:  "+",
 		DBConstraint: true,
@@ -551,7 +551,7 @@ func OneToOneField(name string, relatedModel string, opts ...FieldOption) FieldD
 		opt(&f)
 	}
 	if f.DBColumn == "" {
-		f.DBColumn = name + "_id"
+		f.DBColumn = GoFieldToDBColumn(name) + "_id"
 	}
 	return f
 }
@@ -560,7 +560,7 @@ func ManyToManyField(name string, relatedModel string, opts ...FieldOption) Fiel
 	f := FieldDef{
 		Name:         name,
 		FieldType:    ManyToManyType,
-		RelatedModel:  relatedModel,
+		RelatedModel: relatedModel,
 		RelatedName:  "+",
 		Symmetric:    true,
 		Editable:     true,
@@ -573,8 +573,8 @@ func ManyToManyField(name string, relatedModel string, opts ...FieldOption) Fiel
 
 type FieldOption func(*FieldDef)
 
-func WithNullable(f *FieldDef)       { f.Nullable = true }
-func WithUnique(f *FieldDef)         { f.Unique = true }
+func WithNullable(f *FieldDef) { f.Nullable = true }
+func WithUnique(f *FieldDef)   { f.Unique = true }
 func WithDefault(v interface{}) FieldOption {
 	return func(f *FieldDef) { f.Default = v }
 }
@@ -590,7 +590,7 @@ func WithRelatedQueryName(name string) FieldOption {
 func WithDBColumn(col string) FieldOption {
 	return func(f *FieldDef) { f.DBColumn = col }
 }
-func WithDBIndex(f *FieldDef)        { f.DBIndex = true }
+func WithDBIndex(f *FieldDef) { f.DBIndex = true }
 func WithThrough(through string) FieldOption {
 	return func(f *FieldDef) { f.Through = through }
 }
@@ -603,8 +603,8 @@ func WithSymmetric(b bool) FieldOption {
 func WithDBConstraint(b bool) FieldOption {
 	return func(f *FieldDef) { f.DBConstraint = b }
 }
-func WithAutoNow(f *FieldDef)          { f.AutoNow = true }
-func WithAutoNowAdd(f *FieldDef)       { f.AutoNowAdd = true }
+func WithAutoNow(f *FieldDef)    { f.AutoNow = true }
+func WithAutoNowAdd(f *FieldDef) { f.AutoNowAdd = true }
 func WithChoices(choices []Choice) FieldOption {
 	return func(f *FieldDef) { f.Choices = choices }
 }
@@ -622,34 +622,34 @@ func WithValidators(validators ...ValidatorFunc) FieldOption {
 }
 
 type ModelOptions struct {
-	TableName        string
-	Ordering         []string
+	TableName          string
+	Ordering           []string
 	DefaultOrdering    []string
-	VerboseName      string
-	VerboseNamePlural string
+	VerboseName        string
+	VerboseNamePlural  string
 	DefaultManagerName string
-	UniqueTogether   [][]string
-	Indexes          []IndexDef
-	Constraints      []ConstraintDef
-	DBTableComment   string
-	Managed          bool
-	AppLabel         string
-	Swappable        string
-	DefaultAutoField FieldType
+	UniqueTogether     [][]string
+	Indexes            []IndexDef
+	Constraints        []ConstraintDef
+	DBTableComment     string
+	Managed            bool
+	AppLabel           string
+	Swappable          string
+	DefaultAutoField   FieldType
 	DefaultPermissions []string
 }
 
 type ModelMeta struct {
-	AppLabel      string
-	ModelName     string
-	TableName     string
-	PKField       string
-	Fields        []FieldDef
-	Indexes       []IndexDef
-	Constraints   []ConstraintDef
+	AppLabel        string
+	ModelName       string
+	TableName       string
+	PKField         string
+	Fields          []FieldDef
+	Indexes         []IndexDef
+	Constraints     []ConstraintDef
 	DefaultOrdering []string
-	Options       ModelOptions
-	Managers      map[string]*ManagerDef
+	Options         ModelOptions
+	Managers        map[string]*ManagerDef
 }
 
 func (m *ModelMeta) FieldByName(name string) (FieldDef, bool) {
@@ -661,19 +661,43 @@ func (m *ModelMeta) FieldByName(name string) (FieldDef, bool) {
 	return FieldDef{}, false
 }
 
+func (m *ModelMeta) FieldForNameOrColumn(name string) (FieldDef, bool) {
+	for _, f := range m.Fields {
+		if f.Name == name || f.DBColumn == name || GoFieldToDBColumn(f.Name) == name {
+			return f, true
+		}
+	}
+	return FieldDef{}, false
+}
+
 func (m *ModelMeta) DBColumnForField(name string) string {
-	f, ok := m.FieldByName(name)
+	f, ok := m.FieldForNameOrColumn(name)
 	if !ok {
-		return name
+		return GoFieldToDBColumn(name)
 	}
 	if f.DBColumn != "" {
 		return f.DBColumn
 	}
-	return f.Name
+	return GoFieldToDBColumn(f.Name)
+}
+
+func (m *ModelMeta) PKColumn() string {
+	return m.DBColumnForField(m.PKField)
+}
+
+func (m *ModelMeta) AutoPKField() (FieldDef, bool) {
+	if m.PKField == "" {
+		return FieldDef{}, false
+	}
+	f, ok := m.FieldForNameOrColumn(m.PKField)
+	if !ok {
+		return FieldDef{}, false
+	}
+	return f, f.Auto
 }
 
 func (m *ModelMeta) IsRelation(name string) bool {
-	f, ok := m.FieldByName(name)
+	f, ok := m.FieldForNameOrColumn(name)
 	if !ok {
 		return false
 	}
@@ -732,8 +756,8 @@ type ModelInstance interface {
 
 func DefaultModelOptions() ModelOptions {
 	return ModelOptions{
-		Managed:          true,
-		DefaultAutoField: AutoFieldType,
+		Managed:            true,
+		DefaultAutoField:   AutoFieldType,
 		DefaultPermissions: []string{"add", "change", "delete", "view"},
 		DefaultManagerName: "objects",
 	}

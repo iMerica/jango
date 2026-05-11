@@ -3,31 +3,37 @@ package orm
 import (
 	"strings"
 	"testing"
+	"time"
 )
+
+type User struct {
+	ID uint `jango:"primary_key"`
+}
+
+type Widget struct {
+	ID          uint      `jango:"primary_key"`
+	Name        string    `jango:"type:char,max_length:100"`
+	Description string    `jango:"type:text"`
+	Count       int       `jango:"type:int"`
+	Active      bool      `jango:"type:boolean,default:true"`
+	CreatedAt   time.Time `jango:"auto_now_add,column:created_at"`
+	Author      *User     `jango:"related_name:widgets,column:author_id"`
+}
+
+func (Widget) Meta() ModelOptions {
+	return ModelOptions{
+		VerboseName:       "widget",
+		VerboseNamePlural: "widgets",
+		TableName:         "test_widget",
+		DefaultOrdering:   []string{"-created_at"},
+	}
+}
 
 var testMeta *ModelMeta
 
 func init() {
-	testMeta = RegisterModel("test", "Widget", &ModelMeta{
-		AppLabel:  "test",
-		ModelName: "Widget",
-		TableName:  "test_widget",
-		PKField:   "ID",
-		Fields: []FieldDef{
-			BigAutoField("ID"),
-			CharField("Name", 100),
-			TextField("Description"),
-			IntegerField("Count"),
-			BooleanField("Active", WithDefault(true)),
-			DateTimeField("CreatedAt", WithAutoNowAdd, WithDBColumn("created_at")),
-			ForeignKey("Author", "test.User", WithRelatedName("widgets"), WithDBColumn("author_id")),
-		},
-		DefaultOrdering: []string{"-created_at"},
-		Options: ModelOptions{
-			VerboseName:       "widget",
-			VerboseNamePlural: "widgets",
-		},
-	})
+	RegisterModel("test", &User{})
+	testMeta = RegisterModel("test", &Widget{})
 }
 
 func TestFieldConstructors(t *testing.T) {
@@ -177,14 +183,31 @@ func TestModelMetaFieldByName(t *testing.T) {
 }
 
 func TestModelMetaDBColumnForField(t *testing.T) {
-	col := testMeta.DBColumnForField("CreatedAt")
+	if got := GoFieldToDBColumn("ID"); got != "id" {
+		t.Errorf("expected GoFieldToDBColumn(ID) to be 'id', got '%s'", got)
+	}
+	if got := GoFieldToDBColumn("AuthorID"); got != "author_id" {
+		t.Errorf("expected GoFieldToDBColumn(AuthorID) to be 'author_id', got '%s'", got)
+	}
+
+	col := testMeta.DBColumnForField("ID")
+	if col != "id" {
+		t.Errorf("expected 'id', got '%s'", col)
+	}
+
+	col = testMeta.DBColumnForField("CreatedAt")
 	if col != "created_at" {
 		t.Errorf("expected 'created_at', got '%s'", col)
 	}
 
 	col = testMeta.DBColumnForField("Name")
-	if col != "Name" {
-		t.Errorf("expected 'Name' for field without explicit DBColumn, got '%s'", col)
+	if col != "name" {
+		t.Errorf("expected 'name' for field without explicit DBColumn, got '%s'", col)
+	}
+
+	col = testMeta.DBColumnForField("author_id")
+	if col != "author_id" {
+		t.Errorf("expected DB column lookup to preserve 'author_id', got '%s'", col)
 	}
 }
 
@@ -478,7 +501,7 @@ func TestCaseExpr(t *testing.T) {
 }
 
 func TestQuerySetImmutability(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 
 	filtered := qs.Filter(L("name", "test"))
 	if len(qs.filters) != 0 {
@@ -506,7 +529,7 @@ func TestQuerySetImmutability(t *testing.T) {
 }
 
 func TestQuerySetChaining(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 
 	result := qs.Filter(L("name", "test")).Exclude(L("active", false)).OrderBy("-created_at").Limit(10).Offset(20)
 
@@ -528,7 +551,7 @@ func TestQuerySetChaining(t *testing.T) {
 }
 
 func TestQuerySetDistinct(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	distinct := qs.Distinct()
 	if !distinct.distinct {
 		t.Error("expected distinct to be true")
@@ -539,7 +562,7 @@ func TestQuerySetDistinct(t *testing.T) {
 }
 
 func TestQuerySetOnlyDefer(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 
 	only := qs.Only("name", "created_at")
 	if len(only.onlyFields) != 2 {
@@ -553,7 +576,7 @@ func TestQuerySetOnlyDefer(t *testing.T) {
 }
 
 func TestQuerySetSelectRelated(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	related := qs.SelectRelated("author")
 	if len(related.selectRelated) != 1 {
 		t.Errorf("expected 1 select_related field, got %d", len(related.selectRelated))
@@ -564,7 +587,7 @@ func TestQuerySetSelectRelated(t *testing.T) {
 }
 
 func TestQuerySetPrefetchRelated(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	prefetched := qs.PrefetchRelated("tags")
 	if len(prefetched.prefetchRelated) != 1 {
 		t.Errorf("expected 1 prefetch_related field, got %d", len(prefetched.prefetchRelated))
@@ -575,7 +598,7 @@ func TestQuerySetPrefetchRelated(t *testing.T) {
 }
 
 func TestQuerySetAnnotate(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	annotated := qs.Annotate(
 		Annotate("total", Count(F("id"))),
 		Annotate("avg_score", Avg(F("score"))),
@@ -586,7 +609,7 @@ func TestQuerySetAnnotate(t *testing.T) {
 }
 
 func TestQuerySetForUpdate(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	locked := qs.ForUpdate()
 	if !locked._forUpdate {
 		t.Error("expected forUpdate to be true")
@@ -604,7 +627,7 @@ func TestQuerySetForUpdate(t *testing.T) {
 }
 
 func TestQuerySetNone(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	none := qs.None()
 	if !none.noop {
 		t.Error("expected noop to be true")
@@ -612,7 +635,7 @@ func TestQuerySetNone(t *testing.T) {
 }
 
 func TestQuerySetValues(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	vqs := qs.Values("name", "count")
 	if len(vqs.valuesFields) != 2 {
 		t.Errorf("expected 2 values fields, got %d", len(vqs.valuesFields))
@@ -620,7 +643,7 @@ func TestQuerySetValues(t *testing.T) {
 }
 
 func TestQuerySetValuesList(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 	vlqs := qs.ValuesList("name", "count")
 	if len(vlqs.valuesListFields) != 2 {
 		t.Errorf("expected 2 values_list fields, got %d", len(vlqs.valuesListFields))
@@ -629,7 +652,7 @@ func TestQuerySetValuesList(t *testing.T) {
 
 func TestSQLCompilerSelectBasic(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil)
+	qs := NewBaseQuerySet(testMeta, nil)
 
 	sql, args := compiler.CompileSelect(qs)
 	if sql == "" {
@@ -651,7 +674,7 @@ func TestSQLCompilerSelectBasic(t *testing.T) {
 
 func TestSQLCompilerSelectWithFilter(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).Filter(L("name", "test"))
+	qs := NewBaseQuerySet(testMeta, nil).Filter(L("name", "test"))
 
 	sql, args := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "WHERE") {
@@ -664,7 +687,7 @@ func TestSQLCompilerSelectWithFilter(t *testing.T) {
 
 func TestSQLCompilerSelectWithMultipleFilters(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).Filter(L("name", "test"), L("active", true))
+	qs := NewBaseQuerySet(testMeta, nil).Filter(L("name", "test"), L("active", true))
 
 	sql, args := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "WHERE") {
@@ -677,7 +700,7 @@ func TestSQLCompilerSelectWithMultipleFilters(t *testing.T) {
 
 func TestSQLCompilerSelectWithExclude(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).Exclude(L("name", "test"))
+	qs := NewBaseQuerySet(testMeta, nil).Exclude(L("name", "test"))
 
 	sql, _ := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "NOT") {
@@ -687,7 +710,7 @@ func TestSQLCompilerSelectWithExclude(t *testing.T) {
 
 func TestSQLCompilerSelectWithOrderBy(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).OrderBy("name", "-created_at")
+	qs := NewBaseQuerySet(testMeta, nil).OrderBy("name", "-created_at")
 
 	sql, _ := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "ORDER BY") {
@@ -697,7 +720,7 @@ func TestSQLCompilerSelectWithOrderBy(t *testing.T) {
 
 func TestSQLCompilerSelectWithLimitOffset(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).Limit(10).Offset(20)
+	qs := NewBaseQuerySet(testMeta, nil).Limit(10).Offset(20)
 
 	sql, _ := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "LIMIT 10") {
@@ -710,7 +733,7 @@ func TestSQLCompilerSelectWithLimitOffset(t *testing.T) {
 
 func TestSQLCompilerSelectDistinct(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).Distinct()
+	qs := NewBaseQuerySet(testMeta, nil).Distinct()
 
 	sql, _ := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "DISTINCT") {
@@ -778,6 +801,34 @@ func TestSQLCompilerCount(t *testing.T) {
 	if !strings.Contains(sql, "SELECT COUNT(") {
 		t.Error("expected SELECT COUNT in SQL")
 	}
+	if strings.Contains(sql, `"ID"`) {
+		t.Errorf("expected count SQL to use DB column, got: %s", sql)
+	}
+	if !strings.Contains(sql, `"id"`) {
+		t.Errorf("expected count SQL to include id column, got: %s", sql)
+	}
+}
+
+func TestSQLCompilerUsesDBColumns(t *testing.T) {
+	compiler := NewSQLCompiler()
+
+	insertSQL, _ := compiler.CompileInsert(testMeta, map[string]interface{}{"Name": "test"})
+	if !strings.Contains(insertSQL, `"name"`) || !strings.Contains(insertSQL, `RETURNING "id"`) {
+		t.Errorf("expected insert SQL to use DB columns, got: %s", insertSQL)
+	}
+	if strings.Contains(insertSQL, `"Name"`) || strings.Contains(insertSQL, `"ID"`) {
+		t.Errorf("expected insert SQL not to use Go field names, got: %s", insertSQL)
+	}
+
+	selectSQL, _ := compiler.CompileSelect(NewBaseQuerySet(testMeta, nil).
+		Filter(L("CreatedAt__year", 2026)).
+		OrderBy("-CreatedAt"))
+	if !strings.Contains(selectSQL, `"created_at"`) {
+		t.Errorf("expected select SQL to use created_at column, got: %s", selectSQL)
+	}
+	if strings.Contains(selectSQL, `"CreatedAt"`) {
+		t.Errorf("expected select SQL not to use CreatedAt field name, got: %s", selectSQL)
+	}
 }
 
 func TestSQLCompilerLookupOperators(t *testing.T) {
@@ -842,7 +893,7 @@ func TestSQLCompilerQNode(t *testing.T) {
 
 func TestSQLCompilerAnnotate(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).Annotate(
+	qs := NewBaseQuerySet(testMeta, nil).Annotate(
 		Annotate("total", CountStar()),
 		Annotate("average", Avg(F("count"))),
 	)
@@ -858,7 +909,7 @@ func TestSQLCompilerAnnotate(t *testing.T) {
 
 func TestSQLCompilerForUpdate(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).ForUpdate()
+	qs := NewBaseQuerySet(testMeta, nil).ForUpdate()
 
 	sql, _ := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "FOR UPDATE") {
@@ -868,7 +919,7 @@ func TestSQLCompilerForUpdate(t *testing.T) {
 
 func TestSQLCompilerForUpdateNoWait(t *testing.T) {
 	compiler := NewSQLCompiler()
-	qs := NewQuerySet(testMeta, nil).ForUpdate(NoWait)
+	qs := NewBaseQuerySet(testMeta, nil).ForUpdate(NoWait)
 
 	sql, _ := compiler.CompileSelect(qs)
 	if !strings.Contains(sql, "FOR UPDATE NOWAIT") {
@@ -952,9 +1003,9 @@ func TestErrorTypes(t *testing.T) {
 
 func TestIndexDef(t *testing.T) {
 	idx := IndexDef{
-		Name:     "test_idx",
-		Fields:   []string{"name", "created_at"},
-		Unique:   true,
+		Name:      "test_idx",
+		Fields:    []string{"name", "created_at"},
+		Unique:    true,
 		Condition: "active = true",
 	}
 	if idx.Name != "test_idx" {
@@ -970,8 +1021,8 @@ func TestIndexDef(t *testing.T) {
 
 func TestConstraintDef(t *testing.T) {
 	c := ConstraintDef{
-		Name:     "unique_name",
-		Unique:   []string{"name", "app_label"},
+		Name:      "unique_name",
+		Unique:    []string{"name", "app_label"},
 		Condition: "active = true",
 	}
 	if c.Name != "unique_name" {
@@ -993,7 +1044,7 @@ func TestModelOptions(t *testing.T) {
 }
 
 func TestSubqueryExpr(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil).Filter(L("active", true))
+	qs := NewBaseQuerySet(testMeta, nil).Filter(L("active", true))
 	subq := Subquery(qs)
 	if subq.ExprType() != "subquery" {
 		t.Errorf("expected 'subquery', got %s", subq.ExprType())
@@ -1001,7 +1052,7 @@ func TestSubqueryExpr(t *testing.T) {
 }
 
 func TestExistsExpr(t *testing.T) {
-	qs := NewQuerySet(testMeta, nil).Filter(L("active", true))
+	qs := NewBaseQuerySet(testMeta, nil).Filter(L("active", true))
 	exists := Exists(qs)
 	if exists.ExprType() != "exists" {
 		t.Errorf("expected 'exists', got %s", exists.ExprType())

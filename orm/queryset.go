@@ -6,39 +6,39 @@ import (
 	"strings"
 )
 
-type QuerySet struct {
-	model   *ModelMeta
-	db      *DB
-	filters []QNode
-	exclude []QNode
-	orderBy []string
-	limit   int
-	offset  int
-	distinct bool
-	selectFields []string
-	deferFields []string
-	onlyFields   []string
-	valuesFields []string
-	valuesListFields []string
-	flat      bool
-	annotations []Annotation
-	selectRelated []string
-	prefetchRelated []PrefetchSpec
-	compiler  *SQLCompiler
-	_forUpdate bool
-	_forUpdateNoWait bool
+type BaseQuerySet struct {
+	model                *ModelMeta
+	db                   *DB
+	filters              []QNode
+	exclude              []QNode
+	orderBy              []string
+	limit                int
+	offset               int
+	distinct             bool
+	selectFields         []string
+	deferFields          []string
+	onlyFields           []string
+	valuesFields         []string
+	valuesListFields     []string
+	flat                 bool
+	annotations          []Annotation
+	selectRelated        []string
+	prefetchRelated      []PrefetchSpec
+	compiler             *SQLCompiler
+	_forUpdate           bool
+	_forUpdateNoWait     bool
 	_forUpdateSkipLocked bool
-	noop      bool
+	noop                 bool
 }
 
 type PrefetchSpec struct {
-	Field     string
-	QuerySet  *QuerySet
-	ToAttr   string
+	Field        string
+	BaseQuerySet *BaseQuerySet
+	ToAttr       string
 }
 
-func NewQuerySet(model *ModelMeta, db *DB) *QuerySet {
-	return &QuerySet{
+func NewBaseQuerySet(model *ModelMeta, db *DB) *BaseQuerySet {
+	return &BaseQuerySet{
 		model:    model,
 		db:       db,
 		filters:  nil,
@@ -50,71 +50,71 @@ func NewQuerySet(model *ModelMeta, db *DB) *QuerySet {
 	}
 }
 
-func (qs *QuerySet) clone() *QuerySet {
-	newQS := &QuerySet{
-		model:    qs.model,
-		db:       qs.db,
-		filters:  append([]QNode(nil), qs.filters...),
-		exclude:  append([]QNode(nil), qs.exclude...),
-		orderBy:  append([]string(nil), qs.orderBy...),
-		limit:    qs.limit,
-		offset:   qs.offset,
-		distinct: qs.distinct,
-		selectFields: append([]string(nil), qs.selectFields...),
-		deferFields:  append([]string(nil), qs.deferFields...),
-		onlyFields:   append([]string(nil), qs.onlyFields...),
-		valuesFields: append([]string(nil), qs.valuesFields...),
-		valuesListFields: append([]string(nil), qs.valuesListFields...),
-		flat:        qs.flat,
-		annotations: append([]Annotation(nil), qs.annotations...),
-		selectRelated: append([]string(nil), qs.selectRelated...),
-		prefetchRelated: append([]PrefetchSpec(nil), qs.prefetchRelated...),
-		compiler:     qs.compiler,
-		_forUpdate:   qs._forUpdate,
-		_forUpdateNoWait: qs._forUpdateNoWait,
+func (qs *BaseQuerySet) clone() *BaseQuerySet {
+	newQS := &BaseQuerySet{
+		model:                qs.model,
+		db:                   qs.db,
+		filters:              append([]QNode(nil), qs.filters...),
+		exclude:              append([]QNode(nil), qs.exclude...),
+		orderBy:              append([]string(nil), qs.orderBy...),
+		limit:                qs.limit,
+		offset:               qs.offset,
+		distinct:             qs.distinct,
+		selectFields:         append([]string(nil), qs.selectFields...),
+		deferFields:          append([]string(nil), qs.deferFields...),
+		onlyFields:           append([]string(nil), qs.onlyFields...),
+		valuesFields:         append([]string(nil), qs.valuesFields...),
+		valuesListFields:     append([]string(nil), qs.valuesListFields...),
+		flat:                 qs.flat,
+		annotations:          append([]Annotation(nil), qs.annotations...),
+		selectRelated:        append([]string(nil), qs.selectRelated...),
+		prefetchRelated:      append([]PrefetchSpec(nil), qs.prefetchRelated...),
+		compiler:             qs.compiler,
+		_forUpdate:           qs._forUpdate,
+		_forUpdateNoWait:     qs._forUpdateNoWait,
 		_forUpdateSkipLocked: qs._forUpdateSkipLocked,
-		noop:        qs.noop,
+		noop:                 qs.noop,
 	}
 	return newQS
 }
 
-func (qs *QuerySet) All() *QuerySet {
+func (qs *BaseQuerySet) All() *BaseQuerySet {
 	return qs.clone()
 }
 
-func (qs *QuerySet) Filter(lookups ...Lookup) *QuerySet {
+func (qs *BaseQuerySet) Filter(lookups ...Lookup) *BaseQuerySet {
 	newQS := qs.clone()
 	q := Q(lookups...)
 	newQS.filters = append(newQS.filters, q)
 	return newQS
 }
 
-func (qs *QuerySet) FilterQ(q QNode) *QuerySet {
+func (qs *BaseQuerySet) FilterQ(q QNode) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.filters = append(newQS.filters, q)
 	return newQS
 }
 
-func (qs *QuerySet) Exclude(lookups ...Lookup) *QuerySet {
+func (qs *BaseQuerySet) Exclude(lookups ...Lookup) *BaseQuerySet {
 	newQS := qs.clone()
 	q := Q(lookups...)
 	newQS.exclude = append(newQS.exclude, q)
 	return newQS
 }
 
-func (qs *QuerySet) ExcludeQ(q QNode) *QuerySet {
+func (qs *BaseQuerySet) ExcludeQ(q QNode) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.exclude = append(newQS.exclude, q)
 	return newQS
 }
 
-func (qs *QuerySet) OrderBy(fields ...string) *QuerySet {
+func (qs *BaseQuerySet) OrderBy(fields ...string) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.orderBy = append(newQS.orderBy, fields...)
 	return newQS
 }
 
-func (qs *QuerySet) Reverse() *QuerySet {
+func (qs *BaseQuerySet) Reverse() *BaseQuerySet {
 	newQS := qs.clone()
 	if len(newQS.orderBy) == 0 {
 		if newQS.model != nil {
@@ -156,81 +156,81 @@ func strings_HasPrefix(s, prefix string) bool {
 	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }
 
-func (qs *QuerySet) Limit(n int) *QuerySet {
+func (qs *BaseQuerySet) Limit(n int) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.limit = n
 	return newQS
 }
 
-func (qs *QuerySet) Offset(n int) *QuerySet {
+func (qs *BaseQuerySet) Offset(n int) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.offset = n
 	return newQS
 }
 
-func (qs *QuerySet) Distinct() *QuerySet {
+func (qs *BaseQuerySet) Distinct() *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.distinct = true
 	return newQS
 }
 
-func (qs *QuerySet) Only(fields ...string) *QuerySet {
+func (qs *BaseQuerySet) Only(fields ...string) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.onlyFields = fields
 	newQS.deferFields = nil
 	return newQS
 }
 
-func (qs *QuerySet) Defer(fields ...string) *QuerySet {
+func (qs *BaseQuerySet) Defer(fields ...string) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.deferFields = append(newQS.deferFields, fields...)
 	newQS.onlyFields = nil
 	return newQS
 }
 
-func (qs *QuerySet) Select(fields ...string) *QuerySet {
+func (qs *BaseQuerySet) Select(fields ...string) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.selectFields = fields
 	return newQS
 }
 
-func (qs *QuerySet) Values(fields ...string) *ValuesQuerySet {
+func (qs *BaseQuerySet) Values(fields ...string) *ValuesQuerySet {
 	newQS := qs.clone()
 	vqs := &ValuesQuerySet{
-		QuerySet: newQS,
+		BaseQuerySet: newQS,
 	}
 	vqs.valuesFields = fields
 	return vqs
 }
 
-func (qs *QuerySet) ValuesList(fields ...string) *ValuesListQuerySet {
+func (qs *BaseQuerySet) ValuesList(fields ...string) *ValuesListQuerySet {
 	newQS := qs.clone()
 	vlqs := &ValuesListQuerySet{
-		QuerySet: newQS,
+		BaseQuerySet: newQS,
 	}
 	vlqs.valuesListFields = fields
 	return vlqs
 }
 
-func (qs *QuerySet) Annotate(annotations ...Annotation) *QuerySet {
+func (qs *BaseQuerySet) Annotate(annotations ...Annotation) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.annotations = append(newQS.annotations, annotations...)
 	return newQS
 }
 
-func (qs *QuerySet) Alias(name string, expr Expr) *QuerySet {
+func (qs *BaseQuerySet) Alias(name string, expr Expr) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.annotations = append(newQS.annotations, Annotation{Name: name, Expr: expr})
 	return newQS
 }
 
-func (qs *QuerySet) SelectRelated(fields ...string) *QuerySet {
+func (qs *BaseQuerySet) SelectRelated(fields ...string) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.selectRelated = append(newQS.selectRelated, fields...)
 	return newQS
 }
 
-func (qs *QuerySet) PrefetchRelated(field string, opts ...PrefetchOption) *QuerySet {
+func (qs *BaseQuerySet) PrefetchRelated(field string, opts ...PrefetchOption) *BaseQuerySet {
 	newQS := qs.clone()
 	spec := PrefetchSpec{Field: field}
 	for _, opt := range opts {
@@ -242,15 +242,15 @@ func (qs *QuerySet) PrefetchRelated(field string, opts ...PrefetchOption) *Query
 
 type PrefetchOption func(*PrefetchSpec)
 
-func WithPrefetchQuerySet(qs *QuerySet) PrefetchOption {
-	return func(s *PrefetchSpec) { s.QuerySet = qs }
+func WithPrefetchQuerySet(qs *BaseQuerySet) PrefetchOption {
+	return func(s *PrefetchSpec) { s.BaseQuerySet = qs }
 }
 
 func WithToAttr(attr string) PrefetchOption {
 	return func(s *PrefetchSpec) { s.ToAttr = attr }
 }
 
-func (qs *QuerySet) ForUpdate(opts ...ForUpdateOption) *QuerySet {
+func (qs *BaseQuerySet) ForUpdate(opts ...ForUpdateOption) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS._forUpdate = true
 	for _, opt := range opts {
@@ -259,24 +259,24 @@ func (qs *QuerySet) ForUpdate(opts ...ForUpdateOption) *QuerySet {
 	return newQS
 }
 
-type ForUpdateOption func(*QuerySet)
+type ForUpdateOption func(*BaseQuerySet)
 
-func NoWait(qs *QuerySet)       { qs._forUpdateNoWait = true }
-func SkipLocked(qs *QuerySet)   { qs._forUpdateSkipLocked = true }
+func NoWait(qs *BaseQuerySet)     { qs._forUpdateNoWait = true }
+func SkipLocked(qs *BaseQuerySet) { qs._forUpdateSkipLocked = true }
 
-func (qs *QuerySet) None() *QuerySet {
+func (qs *BaseQuerySet) None() *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.noop = true
 	return newQS
 }
 
-func (qs *QuerySet) Using(db *DB) *QuerySet {
+func (qs *BaseQuerySet) Using(db *DB) *BaseQuerySet {
 	newQS := qs.clone()
 	newQS.db = db
 	return newQS
 }
 
-func (qs *QuerySet) First(ctx context.Context) (map[string]interface{}, error) {
+func (qs *BaseQuerySet) First(ctx context.Context) (map[string]interface{}, error) {
 	limited := qs.OrderBy(qs.model.PKField).Limit(1)
 	results, err := limited.executeSelect(ctx)
 	if err != nil {
@@ -288,7 +288,7 @@ func (qs *QuerySet) First(ctx context.Context) (map[string]interface{}, error) {
 	return results[0], nil
 }
 
-func (qs *QuerySet) Last(ctx context.Context) (map[string]interface{}, error) {
+func (qs *BaseQuerySet) Last(ctx context.Context) (map[string]interface{}, error) {
 	limited := qs.Reverse().OrderBy(qs.model.PKField).Limit(1)
 	results, err := limited.executeSelect(ctx)
 	if err != nil {
@@ -300,7 +300,7 @@ func (qs *QuerySet) Last(ctx context.Context) (map[string]interface{}, error) {
 	return results[0], nil
 }
 
-func (qs *QuerySet) Get(ctx context.Context, lookups ...Lookup) (map[string]interface{}, error) {
+func (qs *BaseQuerySet) Get(ctx context.Context, lookups ...Lookup) (map[string]interface{}, error) {
 	filtered := qs.Filter(lookups...)
 	results, err := filtered.executeSelect(ctx)
 	if err != nil {
@@ -315,23 +315,23 @@ func (qs *QuerySet) Get(ctx context.Context, lookups ...Lookup) (map[string]inte
 	return results[0], nil
 }
 
-func (qs *QuerySet) AllRecords(ctx context.Context) ([]map[string]interface{}, error) {
+func (qs *BaseQuerySet) AllRecords(ctx context.Context) ([]map[string]interface{}, error) {
 	return qs.executeSelect(ctx)
 }
 
-func (qs *QuerySet) Count(ctx context.Context) (int64, error) {
+func (qs *BaseQuerySet) Count(ctx context.Context) (int64, error) {
 	sql, args := qs.compiler.CompileCount(qs.model, qs.filters, qs.exclude, qs.distinct)
 	var count int64
 	err := qs.db.QueryRow(ctx, sql, args...).Scan(&count)
 	return count, err
 }
 
-func (qs *QuerySet) Exists(ctx context.Context) (bool, error) {
+func (qs *BaseQuerySet) Exists(ctx context.Context) (bool, error) {
 	count, err := qs.Limit(1).Count(ctx)
 	return count > 0, err
 }
 
-func (qs *QuerySet) Aggregate(ctx context.Context, annotations ...Annotation) (map[string]interface{}, error) {
+func (qs *BaseQuerySet) Aggregate(ctx context.Context, annotations ...Annotation) (map[string]interface{}, error) {
 	sql, args := qs.compiler.CompileAggregate(qs.model, qs.filters, qs.exclude, annotations)
 	row := qs.db.QueryRow(ctx, sql, args...)
 	result := make(map[string]interface{})
@@ -353,7 +353,7 @@ func (qs *QuerySet) Aggregate(ctx context.Context, annotations ...Annotation) (m
 	return result, nil
 }
 
-func (qs *QuerySet) Update(ctx context.Context, values map[string]interface{}) (int64, error) {
+func (qs *BaseQuerySet) Update(ctx context.Context, values map[string]interface{}) (int64, error) {
 	sql, args := qs.compiler.CompileUpdate(qs.model, values, qs.filters, qs.exclude)
 	tag, err := qs.db.Exec(ctx, sql, args...)
 	if err != nil {
@@ -362,7 +362,7 @@ func (qs *QuerySet) Update(ctx context.Context, values map[string]interface{}) (
 	return tag.RowsAffected(), nil
 }
 
-func (qs *QuerySet) UpdateExpr(ctx context.Context, updates map[string]Expr) (int64, error) {
+func (qs *BaseQuerySet) UpdateExpr(ctx context.Context, updates map[string]Expr) (int64, error) {
 	sql, args := qs.compiler.CompileUpdateExpr(qs.model, updates, qs.filters, qs.exclude)
 	tag, err := qs.db.Exec(ctx, sql, args...)
 	if err != nil {
@@ -371,7 +371,7 @@ func (qs *QuerySet) UpdateExpr(ctx context.Context, updates map[string]Expr) (in
 	return tag.RowsAffected(), nil
 }
 
-func (qs *QuerySet) Delete(ctx context.Context) (int64, error) {
+func (qs *BaseQuerySet) Delete(ctx context.Context) (int64, error) {
 	sql, args := qs.compiler.CompileDelete(qs.model, qs.filters, qs.exclude)
 	tag, err := qs.db.Exec(ctx, sql, args...)
 	if err != nil {
@@ -380,11 +380,32 @@ func (qs *QuerySet) Delete(ctx context.Context) (int64, error) {
 	return tag.RowsAffected(), nil
 }
 
-func (qs *QuerySet) Create(ctx context.Context, values map[string]interface{}) (map[string]interface{}, error) {
+func (qs *BaseQuerySet) Create(ctx context.Context, values map[string]interface{}) (map[string]interface{}, error) {
 	if qs.db == nil {
 		return nil, fmt.Errorf("orm: no database connection")
 	}
 	sql, args := qs.compiler.CompileInsert(qs.model, values)
+	if _, hasAutoPK := qs.model.AutoPKField(); hasAutoPK {
+		var pk interface{}
+		if err := qs.db.QueryRow(ctx, sql, args...).Scan(&pk); err != nil {
+			return nil, err
+		}
+		result := make(map[string]interface{}, len(values)+2)
+		for k, v := range values {
+			if isZeroAutoPKValue(qs.model, k, v) {
+				continue
+			}
+			result[k] = v
+		}
+		if qs.model.PKField != "" {
+			result[qs.model.PKField] = pk
+		}
+		pkCol := qs.model.PKColumn()
+		if pkCol != "" {
+			result[pkCol] = pk
+		}
+		return result, nil
+	}
 	tag, err := qs.db.Exec(ctx, sql, args...)
 	if err != nil {
 		return nil, err
@@ -395,7 +416,7 @@ func (qs *QuerySet) Create(ctx context.Context, values map[string]interface{}) (
 	return values, nil
 }
 
-func (qs *QuerySet) GetOrCreate(ctx context.Context, defaults map[string]interface{}, lookups ...Lookup) (map[string]interface{}, bool, error) {
+func (qs *BaseQuerySet) GetOrCreate(ctx context.Context, defaults map[string]interface{}, lookups ...Lookup) (map[string]interface{}, bool, error) {
 	filtered := qs.Filter(lookups...)
 	results, err := filtered.executeSelect(ctx)
 	if err != nil {
@@ -418,7 +439,7 @@ func (qs *QuerySet) GetOrCreate(ctx context.Context, defaults map[string]interfa
 	return created, true, nil
 }
 
-func (qs *QuerySet) BulkCreate(ctx context.Context, records []map[string]interface{}) (int64, error) {
+func (qs *BaseQuerySet) BulkCreate(ctx context.Context, records []map[string]interface{}) (int64, error) {
 	if len(records) == 0 {
 		return 0, nil
 	}
@@ -433,7 +454,7 @@ func (qs *QuerySet) BulkCreate(ctx context.Context, records []map[string]interfa
 	return totalAffected, nil
 }
 
-func (qs *QuerySet) executeSelect(ctx context.Context) ([]map[string]interface{}, error) {
+func (qs *BaseQuerySet) executeSelectRows(ctx context.Context) (Rows, error) {
 	if qs.noop {
 		return nil, nil
 	}
@@ -441,16 +462,23 @@ func (qs *QuerySet) executeSelect(ctx context.Context) ([]map[string]interface{}
 		return nil, fmt.Errorf("orm: no database connection")
 	}
 	sql, args := qs.compiler.CompileSelect(qs)
-	rows, err := qs.db.Query(ctx, sql, args...)
+	return qs.db.Query(ctx, sql, args...)
+}
+
+func (qs *BaseQuerySet) executeSelect(ctx context.Context) ([]map[string]interface{}, error) {
+	rows, err := qs.executeSelectRows(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if rows == nil {
+		return nil, nil
 	}
 	defer rows.Close()
 	return scanRows(rows)
 }
 
 type ValuesQuerySet struct {
-	*QuerySet
+	*BaseQuerySet
 }
 
 func (vqs *ValuesQuerySet) AllRecords(ctx context.Context) ([]map[string]interface{}, error) {
@@ -470,15 +498,15 @@ func (vqs *ValuesQuerySet) First(ctx context.Context) (map[string]interface{}, e
 }
 
 type ValuesListQuerySet struct {
-	*QuerySet
+	*BaseQuerySet
 	flat bool
 }
 
 func (vlqs *ValuesListQuerySet) Flat() *ValuesListQuerySet {
 	newQS := vlqs.clone()
 	vlqsNew := &ValuesListQuerySet{
-		QuerySet: newQS,
-		flat:     true,
+		BaseQuerySet: newQS,
+		flat:         true,
 	}
 	vlqsNew.valuesListFields = vlqs.valuesListFields
 	return vlqsNew

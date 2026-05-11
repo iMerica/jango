@@ -24,8 +24,9 @@ func GlobalRegistry() *ModelRegistry {
 	return globalRegistry
 }
 
-func RegisterModel(appLabel string, modelName string, meta *ModelMeta) *ModelMeta {
-	return globalRegistry.Register(appLabel, modelName, meta)
+func RegisterModel(appLabel string, model interface{}) *ModelMeta {
+	meta := ParseModel(appLabel, "", model)
+	return globalRegistry.Register(appLabel, meta.ModelName, meta)
 }
 
 func (mr *ModelRegistry) Register(appLabel string, modelName string, meta *ModelMeta) *ModelMeta {
@@ -58,11 +59,13 @@ func (mr *ModelRegistry) Register(appLabel string, modelName string, meta *Model
 			meta.PKField = "id"
 		}
 	}
+	normalizeModelColumns(meta)
 	if meta.DefaultOrdering == nil {
-		if len(meta.Options.DefaultOrdering) > 0 {
+		if len(meta.Options.Ordering) > 0 {
+			meta.DefaultOrdering = meta.Options.Ordering
+		} else if len(meta.Options.DefaultOrdering) > 0 {
 			meta.DefaultOrdering = meta.Options.DefaultOrdering
 		}
-		meta.DefaultOrdering = meta.Options.Ordering
 	}
 	if meta.Managers == nil {
 		meta.Managers = make(map[string]*ManagerDef)
@@ -123,7 +126,7 @@ func (mr *ModelRegistry) FieldForLookup(appLabel, modelName, fieldPath string) (
 	}
 	parts := strings.SplitN(fieldPath, "__", 2)
 	fieldName := parts[0]
-	f, ok := m.FieldByName(fieldName)
+	f, ok := m.FieldForNameOrColumn(fieldName)
 	if !ok {
 		return FieldDef{}, false
 	}
@@ -135,6 +138,20 @@ func (mr *ModelRegistry) Reset() {
 	defer mr.mu.Unlock()
 	mr.models = make(map[string]*ModelMeta)
 	mr.ordered = nil
+}
+
+func normalizeModelColumns(meta *ModelMeta) {
+	for i := range meta.Fields {
+		f := &meta.Fields[i]
+		if f.DBColumn != "" {
+			continue
+		}
+		if f.FieldType == ForeignKeyType || f.FieldType == OneToOneType {
+			f.DBColumn = GoFieldToDBColumn(f.Name) + "_id"
+			continue
+		}
+		f.DBColumn = GoFieldToDBColumn(f.Name)
+	}
 }
 
 func DefaultPKField(name string) FieldDef {

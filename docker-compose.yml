@@ -1,0 +1,9 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: jango_test
+      POSTGRES_USER: jango
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"

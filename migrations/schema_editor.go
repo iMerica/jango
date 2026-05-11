@@ -332,9 +332,9 @@ func columnName(f orm.FieldDef) string {
 		return f.DBColumn
 	}
 	if f.FieldType == orm.ForeignKeyType || f.FieldType == orm.OneToOneType {
-		return f.Name + "_id"
+		return orm.GoFieldToDBColumn(f.Name) + "_id"
 	}
-	return f.Name
+	return orm.GoFieldToDBColumn(f.Name)
 }
 
 func buildColumnConstraints(f orm.FieldDef) string {

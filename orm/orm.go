@@ -29,7 +29,7 @@ func NewManagerForModel(appLabel, modelName string) (*Manager, error) {
 	return NewManager(meta, defaultDB), nil
 }
 
-func Objects(appLabel, modelName string) *QuerySet {
+func BaseObjects(appLabel, modelName string) *BaseQuerySet {
 	meta := GlobalRegistry().MustGet(appLabel, modelName)
-	return NewQuerySet(meta, defaultDB)
+	return NewBaseQuerySet(meta, defaultDB)
 }
