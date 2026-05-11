@@ -7,27 +7,29 @@ on:
     branches: [ master ]
 
 jobs:
-  orm:
+  orm-unit-and-build:
+    name: Unit
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
+    - name: Go
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
 
-    - name: ORM unit tests
+    - name: Test
       run: go test -v ./orm
 
-    - name: ORM vet
+    - name: Vet
       run: go vet ./orm
 
-    - name: CLI build
+    - name: Build
       run: go build ./cmd/jango
 
-  orm-integration:
+  postgres-integration-tests:
+    name: Integration
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -45,14 +47,14 @@ jobs:
           --health-retries 5
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
+    - name: Go
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
 
-    - name: ORM integration tests
+    - name: Test
       env:
         DATABASE_URL: postgres://jango:password@localhost:5432/jango_test?sslmode=disable
       run: go test -count=1 -v ./orm -run TestIntegration
