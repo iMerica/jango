@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -111,7 +110,7 @@ var (
 )
 
 func init() {
-	UserMeta = orm.RegisterModel("auth", "User", &orm.ModelMeta{
+	UserMeta = orm.GlobalRegistry().Register("auth", "User", &orm.ModelMeta{
 		AppLabel:  "auth",
 		ModelName: "User",
 		TableName: "auth_user",
@@ -141,7 +140,7 @@ func init() {
 		},
 	})
 
-	GroupMeta = orm.RegisterModel("auth", "Group", &orm.ModelMeta{
+	GroupMeta = orm.GlobalRegistry().Register("auth", "Group", &orm.ModelMeta{
 		AppLabel:  "auth",
 		ModelName: "Group",
 		TableName: "auth_group",
@@ -159,7 +158,7 @@ func init() {
 		},
 	})
 
-	PermissionMeta = orm.RegisterModel("auth", "Permission", &orm.ModelMeta{
+	PermissionMeta = orm.GlobalRegistry().Register("auth", "Permission", &orm.ModelMeta{
 		AppLabel:  "auth",
 		ModelName: "Permission",
 		TableName: "auth_permission",

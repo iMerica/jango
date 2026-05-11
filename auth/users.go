@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/iMerica/jango/orm"
@@ -50,7 +51,7 @@ func CreateUser(ctx context.Context, username, email, password string) (*User, e
 
 	db := orm.DefaultDB()
 	if db == nil {
-		return nil, orm.ErrDBNotAvailable
+		return nil, fmt.Errorf("auth: database not available")
 	}
 
 	var id int64
@@ -101,7 +102,7 @@ func CreateSuperUser(ctx context.Context, username, email, password string) (*Us
 func GetUserByID(ctx context.Context, userID int64) (*User, error) {
 	db := orm.DefaultDB()
 	if db == nil {
-		return nil, orm.ErrDBNotAvailable
+		return nil, fmt.Errorf("auth: database not available")
 	}
 
 	row := db.QueryRow(ctx,
@@ -109,7 +110,6 @@ func GetUserByID(ctx context.Context, userID int64) (*User, error) {
 		userID)
 
 	user := &User{}
-	var lastLogin *string
 	var dateJoined time.Time
 	var firstName, lastName *string
 
@@ -133,7 +133,7 @@ func GetUserByID(ctx context.Context, userID int64) (*User, error) {
 func GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	db := orm.DefaultDB()
 	if db == nil {
-		return nil, orm.ErrDBNotAvailable
+		return nil, fmt.Errorf("auth: database not available")
 	}
 
 	row := db.QueryRow(ctx,

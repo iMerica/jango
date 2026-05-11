@@ -16,35 +16,13 @@ func (mb *ModelBackend) Authenticate(ctx context.Context, username, password str
 	}
 
 	userModel := GetUserModel()
-	pkField := userModel.PKField
-	passwordField := ""
-	usernameField := ""
-
-	for _, f := range userModel.Fields {
-		if f.Name == "Username" || f.DBColumn == "username" {
-			usernameField = f.DBColumn
-			if usernameField == "" {
-				usernameField = f.Name
-			}
-		}
-		if f.Name == "Password" || f.DBColumn == "password" {
-			passwordField = f.DBColumn
-			if passwordField == "" {
-				passwordField = f.Name
-			}
-		}
-	}
-
-	if usernameField == "" {
-		usernameField = "username"
-	}
-	if passwordField == "" {
-		passwordField = "password"
-	}
+	pkCol := userModel.PKColumn()
+	usernameCol := userModel.DBColumnForField("Username")
+	passwordCol := userModel.DBColumnForField("Password")
 
 	query := fmt.Sprintf("SELECT %s, %s, %s FROM %s WHERE %s = $1",
-		pkField, usernameField, passwordField,
-		userModel.TableName, usernameField)
+		pkCol, usernameCol, passwordCol,
+		userModel.TableName, usernameCol)
 
 	row := db.QueryRow(ctx, query, username)
 
@@ -64,7 +42,7 @@ func (mb *ModelBackend) Authenticate(ctx context.Context, username, password str
 		Password: hashedPw,
 	}
 
-	if err := mb.loadUserFields(ctx, user, userModel, pkField, usernameField); err != nil {
+	if err := mb.loadUserFields(ctx, user, userModel, pkCol); err != nil {
 		return user, nil
 	}
 
@@ -79,81 +57,46 @@ func (mb *ModelBackend) GetUser(ctx context.Context, userID int64) (*User, error
 
 	userModel := GetUserModel()
 
-	cols := []string{}
-	colNames := map[string]string{}
-	for _, f := range userModel.Fields {
-		col := f.DBColumn
-		if col == "" {
-			col = f.Name
-		}
-		if f.FieldType == orm.ManyToManyField {
-			continue
-		}
-		cols = append(cols, col)
-		colNames[f.Name] = col
-	}
-
-	query := fmt.Sprintf("SELECT * FROM %s WHERE %s = $1",
-		userModel.TableName, userModel.PKField)
+	query := fmt.Sprintf("SELECT id, username, email, password, first_name, last_name, is_active, is_staff, is_admin, last_login, date_joined FROM %s WHERE %s = $1",
+		userModel.TableName, userModel.PKColumn())
 
 	row := db.QueryRow(ctx, query, userID)
-	record, err := row.Scan()
-	if err != nil {
+	user := &User{}
+	var firstName, lastName *string
+	if err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &firstName, &lastName,
+		&user.IsActive, &user.IsStaff, &user.IsAdmin, &user.LastLogin, &user.DateJoined); err != nil {
 		return nil, ErrUserNotFound
 	}
-
-	user := &User{}
-	if id, ok := record["id"]; ok {
-		user.ID = id.(int64)
+	if firstName != nil {
+		user.FirstName = *firstName
 	}
-	if username, ok := record["username"]; ok {
-		user.Username = fmt.Sprintf("%v", username)
-	}
-	if email, ok := record["email"]; ok {
-		user.Email = fmt.Sprintf("%v", email)
-	}
-	if password, ok := record["password"]; ok {
-		user.Password = fmt.Sprintf("%v", password)
-	}
-	if isActive, ok := record["is_active"]; ok {
-		user.IsActive = isActive.(bool)
-	}
-	if isStaff, ok := record["is_staff"]; ok {
-		user.IsStaff = isStaff.(bool)
-	}
-	if isAdmin, ok := record["is_admin"]; ok {
-		user.IsAdmin = isAdmin.(bool)
+	if lastName != nil {
+		user.LastName = *lastName
 	}
 
 	return user, nil
 }
 
-func (mb *ModelBackend) loadUserFields(ctx context.Context, user *User, userModel *orm.ModelMeta, pkCol, usernameCol string) error {
+func (mb *ModelBackend) loadUserFields(ctx context.Context, user *User, userModel *orm.ModelMeta, pkCol string) error {
 	db := orm.DefaultDB()
 	if db == nil {
 		return nil
 	}
 
-	query := fmt.Sprintf("SELECT * FROM %s WHERE %s = $1",
+	query := fmt.Sprintf("SELECT email, first_name, last_name, is_active, is_staff, is_admin, last_login, date_joined FROM %s WHERE %s = $1",
 		userModel.TableName, pkCol)
 
 	row := db.QueryRow(ctx, query, user.ID)
-	record, err := row.Scan()
-	if err != nil {
+	var firstName, lastName *string
+	if err := row.Scan(&user.Email, &firstName, &lastName, &user.IsActive, &user.IsStaff, &user.IsAdmin,
+		&user.LastLogin, &user.DateJoined); err != nil {
 		return err
 	}
-
-	if email, ok := record["email"]; ok {
-		user.Email = fmt.Sprintf("%v", email)
+	if firstName != nil {
+		user.FirstName = *firstName
 	}
-	if isActive, ok := record["is_active"]; ok {
-		user.IsActive = toBool(isActive)
-	}
-	if isStaff, ok := record["is_staff"]; ok {
-		user.IsStaff = toBool(isStaff)
-	}
-	if isAdmin, ok := record["is_admin"]; ok {
-		user.IsAdmin = toBool(isAdmin)
+	if lastName != nil {
+		user.LastName = *lastName
 	}
 
 	return nil

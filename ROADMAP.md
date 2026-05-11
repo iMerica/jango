@@ -5,7 +5,7 @@ JanGO is early. The API will change while the core systems settle.
 ```text
 JanGO core progress
 
-[##########----------] 50%
+[##############------] 70%
 
 Done-ish:
 - Project direction
@@ -15,20 +15,18 @@ Done-ish:
 - Migration command shape
 - Middleware design
 - REST framework design
+- Live PostgreSQL ORM integration
+- Auth/session/security pass
 
 In progress:
-- ORM internals
-- Migration graph
-- PostgreSQL schema editor
-- QuerySet semantics
-- Auth and sessions
-- Security middleware
 - Serializers and ViewSets
+- REST filtering, pagination, metadata, and schema generation
+- Forms/admin/test-client integration
 
 Not done:
-- Admin
 - Full template integration
 - Full forms layer
+- Admin
 - Production hardening
 - Compatibility test matrix
 ```
@@ -43,12 +41,12 @@ Not done:
 | Views | Planned | Function views, class-style views, generic views |
 | URL routing | Planned | URLconf-style route maps, namespacing, reverse lookup |
 | Middleware | Planned | Onion model, request hooks, response hooks, exception hooks |
-| Models | In design | Declarative model metadata with Go-native types |
-| QuerySets | In design | Lazy, immutable query builders |
-| Migrations | In design | `makemigrations`, `migrate`, graph, schema editor |
-| PostgreSQL | Planned | First-class backend, not lowest-common-denominator SQL |
-| REST framework | In design | Serializers, API views, viewsets, routers, permissions |
-| Auth | Planned | Users, groups, permissions, auth backends |
-| Sessions | Planned | Cookie, DB, and cache-backed sessions |
-| Security | Planned | CSRF, secure headers, host validation, signed cookies |
+| Models | Done-ish | Struct/tag metadata through `orm.ModelMeta`, normalized DB columns |
+| QuerySets | Done-ish | Lazy typed querysets backed by parameterized PostgreSQL SQL |
+| Migrations | Done-ish | `makemigrations`, `migrate`, graph, schema editor; needs many-to-many and postgres extension polish |
+| PostgreSQL | Done-ish | First-class backend through framework ORM/DB layer |
+| REST framework | In progress | Placeholder package; next incomplete plan is serializers, API views, viewsets, routers, permissions |
+| Auth | Done-ish | Users, groups, permissions, auth backends; verify against current ORM API |
+| Sessions | Done-ish | Cookie, DB, and cache-backed sessions |
+| Security | Done-ish | CSRF, secure headers, host validation, signed cookies |
 | Admin | Later | Planned after ORM, forms, auth, and templates settle |

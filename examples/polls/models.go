@@ -10,7 +10,7 @@ var QuestionMeta *orm.ModelMeta
 var ChoiceMeta *orm.ModelMeta
 
 func init() {
-	QuestionMeta = orm.RegisterModel("polls", "Question", &orm.ModelMeta{
+	QuestionMeta = orm.GlobalRegistry().Register("polls", "Question", &orm.ModelMeta{
 		AppLabel:  "polls",
 		ModelName: "Question",
 		TableName: "polls_question",
@@ -28,7 +28,7 @@ func init() {
 		},
 	})
 
-	ChoiceMeta = orm.RegisterModel("polls", "Choice", &orm.ModelMeta{
+	ChoiceMeta = orm.GlobalRegistry().Register("polls", "Choice", &orm.ModelMeta{
 		AppLabel:  "polls",
 		ModelName: "Choice",
 		TableName: "polls_choice",
@@ -68,5 +68,3 @@ type Choice struct {
 func (c *Choice) TableName() string        { return "polls_choice" }
 func (c *Choice) PKValue() interface{}     { return c.ID }
 func (c *Choice) SetPKValue(v interface{}) { c.ID = v.(int64) }
-
-var Objects = orm.Objects

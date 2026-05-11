@@ -12,7 +12,7 @@ var GroupMeta *orm.ModelMeta
 var PermissionMeta *orm.ModelMeta
 
 func init() {
-	UserMeta = orm.RegisterModel("accounts", "User", &orm.ModelMeta{
+	UserMeta = orm.GlobalRegistry().Register("accounts", "User", &orm.ModelMeta{
 		AppLabel:  "accounts",
 		ModelName: "User",
 		TableName: "accounts_user",
@@ -42,7 +42,7 @@ func init() {
 		},
 	})
 
-	ProfileMeta = orm.RegisterModel("accounts", "Profile", &orm.ModelMeta{
+	ProfileMeta = orm.GlobalRegistry().Register("accounts", "Profile", &orm.ModelMeta{
 		AppLabel:  "accounts",
 		ModelName: "Profile",
 		TableName: "accounts_profile",
@@ -61,7 +61,7 @@ func init() {
 		},
 	})
 
-	GroupMeta = orm.RegisterModel("accounts", "Group", &orm.ModelMeta{
+	GroupMeta = orm.GlobalRegistry().Register("accounts", "Group", &orm.ModelMeta{
 		AppLabel:  "accounts",
 		ModelName: "Group",
 		TableName: "accounts_group",
@@ -77,7 +77,7 @@ func init() {
 		},
 	})
 
-	PermissionMeta = orm.RegisterModel("accounts", "Permission", &orm.ModelMeta{
+	PermissionMeta = orm.GlobalRegistry().Register("accounts", "Permission", &orm.ModelMeta{
 		AppLabel:  "accounts",
 		ModelName: "Permission",
 		TableName: "accounts_permission",

@@ -13,7 +13,7 @@ var CategoryMeta *orm.ModelMeta
 var CommentMeta *orm.ModelMeta
 
 func init() {
-	PostMeta = orm.RegisterModel("blogapi", "Post", &orm.ModelMeta{
+	PostMeta = orm.GlobalRegistry().Register("blogapi", "Post", &orm.ModelMeta{
 		AppLabel:  "blogapi",
 		ModelName: "Post",
 		TableName: "blogapi_post",
@@ -46,7 +46,7 @@ func init() {
 		},
 	})
 
-	TagMeta = orm.RegisterModel("blogapi", "Tag", &orm.ModelMeta{
+	TagMeta = orm.GlobalRegistry().Register("blogapi", "Tag", &orm.ModelMeta{
 		AppLabel:  "blogapi",
 		ModelName: "Tag",
 		TableName: "blogapi_tag",
@@ -62,7 +62,7 @@ func init() {
 		},
 	})
 
-	CategoryMeta = orm.RegisterModel("blogapi", "Category", &orm.ModelMeta{
+	CategoryMeta = orm.GlobalRegistry().Register("blogapi", "Category", &orm.ModelMeta{
 		AppLabel:  "blogapi",
 		ModelName: "Category",
 		TableName: "blogapi_category",
@@ -79,7 +79,7 @@ func init() {
 		},
 	})
 
-	CommentMeta = orm.RegisterModel("blogapi", "Comment", &orm.ModelMeta{
+	CommentMeta = orm.GlobalRegistry().Register("blogapi", "Comment", &orm.ModelMeta{
 		AppLabel:  "blogapi",
 		ModelName: "Comment",
 		TableName: "blogapi_comment",
